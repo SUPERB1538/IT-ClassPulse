@@ -1,0 +1,11 @@
+<h1>Your Courses</h1>
+<a href="/courses/add/">Add Course</a>
+<ul>
+    {% for course in courses %}
+        <li>{{ course.course_name }} ({{ course.semester }})</li>
+    {% empty %}
+        <li>No courses yet.</li>
+    {% endfor %}
+</ul>
+
+<a href="/">Back to Dashboard</a>
