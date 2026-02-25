@@ -24,7 +24,7 @@
           <div class="card-action">View all →</div>
         </div>
 
-        <!-- ✅ Study Plans card + preview list -->
+        <!-- Study Plans card + preview list -->
         <div class="card" @click="go('/studyplans')">
           <div class="card-title">Study Plans</div>
           <div class="card-sub">Plan your study days before deadlines.</div>
@@ -85,18 +85,14 @@
                   <td class="time">{{ row[0] }}</td>
 
                   <template v-for="(cell, idx) in row[1]" :key="idx">
-                    <!-- skip 占位（rowspan 下方格子不渲染） -->
                     <td v-if="cell && cell.skip" style="display:none;"></td>
-
-                    <!-- 空格 -->
                     <td v-else-if="!cell" class="empty"></td>
-
-                    <!-- 有课 -->
                     <td
                       v-else
                       class="session"
                       :rowspan="cell.rowspan"
                       @click="onSessionClick(cell)"
+                      title="Click to edit"
                     >
                       <div class="session-text">
                         <div v-for="(line, i) in splitLines(cell.text)" :key="i">
@@ -117,10 +113,12 @@
       </section>
     </main>
 
-    <!-- Add Class Session Modal -->
-    <div v-if="showAddSession" class="modal-mask" @click.self="showAddSession=false">
+    <!-- Add/Edit Class Session Modal -->
+    <div v-if="showSessionModal" class="modal-mask" @click.self="closeModal">
       <div class="modal">
-        <div class="modal-title">Add class session</div>
+        <div class="modal-title">
+          {{ modalMode === "add" ? "Add class session" : "Edit class session" }}
+        </div>
 
         <div class="form-row">
           <label>Course</label>
@@ -163,9 +161,18 @@
         <div v-if="sessionError" class="error">{{ sessionError }}</div>
 
         <div class="actions">
-          <button class="btn" @click="showAddSession=false">Cancel</button>
-          <button class="btn primary" @click="addClassSession" :disabled="!sessionForm.course">
-            Add
+          <button class="btn" @click="closeModal">Cancel</button>
+
+          <button
+            v-if="modalMode === 'edit'"
+            class="btn danger"
+            @click="deleteSession"
+          >
+            Delete
+          </button>
+
+          <button class="btn primary" @click="saveSession" :disabled="!sessionForm.course">
+            {{ modalMode === "add" ? "Add" : "Save" }}
           </button>
         </div>
       </div>
@@ -186,8 +193,13 @@ const dashboard = ref(null);
 const loading = ref(true);
 const error = ref("");
 
+// courses (for session modal)
 const courses = ref([]);
-const showAddSession = ref(false);
+
+// session modal state
+const showSessionModal = ref(false);
+const modalMode = ref("add"); // "add" | "edit"
+const editingSessionId = ref(null);
 
 const sessionForm = ref({
   course: "",
@@ -196,7 +208,6 @@ const sessionForm = ref({
   end_time: "10:00",
   location: "",
 });
-
 const sessionError = ref("");
 
 // Study plans preview data
@@ -235,21 +246,6 @@ async function loadStudyPlans() {
   }
 }
 
-async function onAddSession() {
-  sessionError.value = "";
-  showAddSession.value = true;
-
-  try {
-    await loadCourses();
-  } catch (e) {
-    sessionError.value = "Failed to load courses";
-  }
-}
-
-function onSessionClick(cell) {
-  alert(`session id: ${cell.session_id}\n${cell.text}`);
-}
-
 async function logoutNow() {
   error.value = "";
   try {
@@ -258,6 +254,11 @@ async function logoutNow() {
   } catch (e) {
     error.value = e?.response?.data ? JSON.stringify(e.response.data) : String(e);
   }
+}
+
+async function refreshDashboard() {
+  const dashRes = await api.get("/dashboard/");
+  dashboard.value = dashRes.data;
 }
 
 async function loadAll() {
@@ -297,28 +298,107 @@ async function loadCourses() {
   }
 }
 
-async function addClassSession() {
+function resetSessionForm() {
+  sessionForm.value = {
+    course: courses.value?.[0]?.id || "",
+    day_of_week: 1,
+    start_time: "09:00",
+    end_time: "10:00",
+    location: "",
+  };
+}
+
+function closeModal() {
+  showSessionModal.value = false;
+  sessionError.value = "";
+  editingSessionId.value = null;
+  modalMode.value = "add";
+}
+
+async function onAddSession() {
+  sessionError.value = "";
+  modalMode.value = "add";
+  editingSessionId.value = null;
+
+  try {
+    await ensureCsrf();
+    await loadCourses();
+    resetSessionForm();
+    showSessionModal.value = true;
+  } catch (e) {
+    sessionError.value = "Failed to load courses";
+  }
+}
+
+// click timetable block -> edit
+async function onSessionClick(cell) {
+  sessionError.value = "";
+  modalMode.value = "edit";
+  editingSessionId.value = cell.session_id;
+
+  try {
+    await ensureCsrf();
+    await loadCourses();
+
+    const res = await api.get(`/sessions/${cell.session_id}/`);
+    const s = res.data;
+
+    sessionForm.value = {
+      course: s.course,
+      day_of_week: s.day_of_week,
+      start_time: s.start_time,
+      end_time: s.end_time,
+      location: s.location || "",
+    };
+
+    showSessionModal.value = true;
+  } catch (e) {
+    sessionError.value = e?.response?.data ? JSON.stringify(e.response.data) : String(e);
+    showSessionModal.value = true;
+  }
+}
+
+async function saveSession() {
   sessionError.value = "";
   try {
     await ensureCsrf();
 
-    await api.post("/sessions/", {
-      course: sessionForm.value.course,
+    const payload = {
+      course: Number(sessionForm.value.course),
       day_of_week: Number(sessionForm.value.day_of_week),
       start_time: sessionForm.value.start_time,
       end_time: sessionForm.value.end_time,
       location: sessionForm.value.location || "",
-    });
+    };
 
-    showAddSession.value = false;
+    if (modalMode.value === "add") {
+      await api.post("/sessions/", payload);
+    } else {
+      await api.patch(`/sessions/${editingSessionId.value}/`, payload);
+    }
 
-    const dashRes = await api.get("/dashboard/");
-    dashboard.value = dashRes.data;
+    showSessionModal.value = false;
+    await refreshDashboard();
   } catch (e) {
     const data = e?.response?.data;
     sessionError.value = data
       ? (data.overlap || data.time || data.detail || JSON.stringify(data))
       : String(e);
+  }
+}
+
+async function deleteSession() {
+  if (!editingSessionId.value) return;
+  if (!confirm("Delete this class session?")) return;
+
+  sessionError.value = "";
+  try {
+    await ensureCsrf();
+    await api.delete(`/sessions/${editingSessionId.value}/`);
+    showSessionModal.value = false;
+    await refreshDashboard();
+  } catch (e) {
+    sessionError.value = e?.response?.data ? JSON.stringify(e.response.data) : String(e);
   }
 }
 
@@ -560,6 +640,11 @@ onMounted(async () => {
   background:#111;
   color:#fff;
   border-color:#111;
+}
+.btn.danger{
+  background:#b91c1c;
+  color:#fff;
+  border-color:#b91c1c;
 }
 .btn:disabled{
   opacity: .5;
