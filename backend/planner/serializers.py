@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from .models import Course, ClassSession, Assignment, StudyPlan
+from datetime import timedelta
+from django.utils import timezone
 
 
 class CourseSerializer(serializers.ModelSerializer):
@@ -41,7 +43,40 @@ class AssignmentSerializer(serializers.ModelSerializer):
 
 class StudyPlanSerializer(serializers.ModelSerializer):
     assignment_title = serializers.CharField(source="assignment.title", read_only=True)
+    course_name = serializers.CharField(source="assignment.course.course_name", read_only=True)
+    time_left_seconds = serializers.SerializerMethodField()
+    time_left_human = serializers.SerializerMethodField()
 
     class Meta:
         model = StudyPlan
-        fields = ["id", "assignment", "assignment_title", "plan_date", "plan_hours"]
+        fields = [
+            "id",
+            "assignment",
+            "assignment_title", 
+            "course_name", 
+            "plan_days",
+            "created_at",
+            "time_left_seconds",
+            "time_left_human",
+        ]
+        read_only_fields = ["id", "created_at", "time_left_seconds", "time_left_human"]
+
+    def get_time_left_seconds(self, obj):
+        due = obj.assignment.due_date
+        now = timezone.now()
+        delta = due - now
+        return max(0, int(delta.total_seconds()))
+
+    def get_time_left_human(self, obj):
+        secs = self.get_time_left_seconds(obj)
+        days = secs // 86400
+        hours = (secs % 86400) // 3600
+        minutes = (secs % 3600) // 60
+
+        if secs <= 0:
+            return "Overdue"
+        if days > 0:
+            return f"{days}d {hours}h"
+        if hours > 0:
+            return f"{hours}h {minutes}m"
+        return f"{minutes}m"
