@@ -38,7 +38,6 @@
       </ul>
     </div>
 
-    <!-- 简单编辑弹层 -->
     <div v-if="editing" class="modalMask" @click.self="editing=null">
       <div class="modal">
         <h3>Edit course</h3>

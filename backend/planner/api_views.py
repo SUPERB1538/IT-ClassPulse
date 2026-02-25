@@ -154,12 +154,35 @@ class ClassSessionViewSet(viewsets.ModelViewSet):
     serializer_class = ClassSessionSerializer
 
     def get_queryset(self):
-        return ClassSession.objects.filter(course__user=self.request.user).select_related("course").order_by("-id")
+        return (
+            ClassSession.objects
+            .filter(course__user=self.request.user)
+            .select_related("course")
+            .order_by("day_of_week", "start_time")
+        )
 
     def perform_create(self, serializer):
         course = serializer.validated_data["course"]
         if course.user_id != self.request.user.id:
             raise PermissionDenied("You don't own this course")
+
+        day = serializer.validated_data["day_of_week"]
+        start = serializer.validated_data["start_time"]
+        end = serializer.validated_data["end_time"]
+
+        if start >= end:
+            raise ValidationError({"time": "start_time must be earlier than end_time"})
+
+        overlap = ClassSession.objects.filter(
+            course__user=self.request.user,
+            day_of_week=day
+        ).filter(
+            Q(start_time__lt=end) & Q(end_time__gt=start)
+        ).exists()
+
+        if overlap:
+            raise ValidationError({"overlap": "Time overlaps with an existing class session"})
+
         serializer.save()
 
 
@@ -200,14 +223,33 @@ class StudyPlanViewSet(viewsets.ModelViewSet):
     serializer_class = StudyPlanSerializer
 
     def get_queryset(self):
-        return (
+        qs = (
             StudyPlan.objects.filter(assignment__course__user=self.request.user)
             .select_related("assignment", "assignment__course")
-            .order_by("-plan_date", "-id")
+            .order_by("-created_at", "-id")
         )
+
+        q = (self.request.query_params.get("q") or "").strip()
+        if q:
+            qs = qs.filter(
+                Q(assignment__title__icontains=q) |
+                Q(assignment__course__course_name__icontains=q)
+            )
+
+        return qs
 
     def perform_create(self, serializer):
         assignment = serializer.validated_data["assignment"]
+        if assignment.course.user_id != self.request.user.id:
+            raise PermissionDenied("You don't own this assignment")
+
+        if StudyPlan.objects.filter(assignment=assignment).exists():
+            raise ValidationError({"assignment": "This assignment already has a study plan."})
+
+        serializer.save()
+
+    def perform_update(self, serializer):
+        assignment = serializer.instance.assignment
         if assignment.course.user_id != self.request.user.id:
             raise PermissionDenied("You don't own this assignment")
         serializer.save()

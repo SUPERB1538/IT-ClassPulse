@@ -39,7 +39,6 @@
         <button class="btn" @click="createAssignment">Add</button>
       </div>
 
-      <p class="tip">Tips: datetime-local 会给本地时间，后端存 UTC 可能显示有差异（不影响功能）。</p>
       <p v-if="error" class="error">{{ error }}</p>
     </div>
 

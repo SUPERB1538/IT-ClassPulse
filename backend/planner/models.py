@@ -69,8 +69,8 @@ class Assignment(models.Model):
 
 class StudyPlan(models.Model):
     assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE, related_name="study_plans")
-    plan_date = models.DateField()
-    plan_hours = models.PositiveIntegerField(default=1)
+    plan_days = models.PositiveIntegerField(default=1)
+    created_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
-        return f"{self.assignment.title} - {self.plan_date} ({self.plan_hours}h)"
+        return f"{self.assignment.title} - {self.plan_days} days"
