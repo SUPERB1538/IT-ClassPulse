@@ -1,25 +1,64 @@
 <template>
-  <div class="wrap">
-    <div class="card">
-      <h1>Login</h1>
-      <p class="sub">Use your Django user account (same as admin).</p>
-
-      <label class="label">Username</label>
-      <input class="input" v-model="username" placeholder="e.g. admin" />
-
-      <label class="label">Password</label>
-      <input class="input" v-model="password" type="password" placeholder="••••••••" />
-
-      <button class="btn" :disabled="loading" @click="doLogin">
-        {{ loading ? "Logging in..." : "Login" }}
-      </button>
-
-      <div class="row">
-        <span class="muted">No account?</span>
-        <a class="link" href="#" @click.prevent="router.push('/register')">Register</a>
+  <div class="login-page">
+    <!-- 左侧品牌区域 -->
+    <div class="brand-panel">
+      <div class="brand-content">
+        <h1 class="logo">ClassPulse</h1>
+        <p class="tagline">
+          Organise your courses.<br />
+          Track assignments.<br />
+          Master your time.
+        </p>
       </div>
+    </div>
 
-      <div v-if="error" class="error">{{ error }}</div>
+    <!-- 右侧登录区域 -->
+    <div class="form-panel">
+      <form class="login-card" @submit.prevent="doLogin">
+        <h2>Welcome Back</h2>
+
+        <div class="form-group">
+          <input
+            v-model="username"
+            class="input"
+            placeholder="Username"
+            autocomplete="username"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <input
+            v-model="password"
+            type="password"
+            class="input"
+            placeholder="Password"
+            autocomplete="current-password"
+            required
+          />
+        </div>
+
+        <button
+          type="submit"
+          class="primary-btn"
+          :disabled="loading"
+        >
+          {{ loading ? "Signing in..." : "Sign In" }}
+        </button>
+
+        <div class="divider"></div>
+
+        <div class="register-row">
+          <span>New to ClassPulse?</span>
+          <a href="#" @click.prevent="router.push('/register')">
+            Create account
+          </a>
+        </div>
+
+        <div v-if="error" class="error-msg">
+          {{ error }}
+        </div>
+      </form>
     </div>
   </div>
 </template>
@@ -40,14 +79,22 @@ const error = ref("");
 async function doLogin() {
   error.value = "";
   loading.value = true;
+
   try {
     const res = await login(username.value, password.value);
-    if (!res.ok) throw new Error(res.error || "Login failed");
+
+    if (!res.ok) {
+      throw new Error(res.error || "Login failed");
+    }
 
     const next = route.query.next || "/";
     router.replace(next);
+
   } catch (e) {
-    error.value = e?.response?.data?.error || e.message || String(e);
+    error.value =
+      e?.response?.data?.error ||
+      e.message ||
+      "Invalid username or password.";
   } finally {
     loading.value = false;
   }
@@ -55,58 +102,196 @@ async function doLogin() {
 </script>
 
 <style scoped>
-.wrap {
+
+/* ===== 基础布局 ===== */
+
+.login-page {
   min-height: 100vh;
   display: grid;
-  place-items: center;
-  background: #fff;
+  grid-template-columns: 1fr 480px;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display",
+               "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
 }
-.card {
-  width: 360px;
-  border: 1px solid #e6e6e6;
-  border-radius: 14px;
-  padding: 18px;
+
+/* ===== 左侧渐变动画 ===== */
+
+.brand-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8vw;
+  color: white;
+  background: linear-gradient(
+    45deg,
+    #0071e3,
+    #4f46e5,
+    #9333ea,
+    #2563eb
+  );
+  background-size: 300% 300%;
+  animation: gradientMove 18s ease infinite;
 }
-h1 {
-  margin: 0 0 6px 0;
-  font-size: 20px;
+
+@keyframes gradientMove {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
-.sub {
-  margin: 0 0 14px 0;
-  color: #666;
-  font-size: 13px;
+
+.brand-content {
+  max-width: 520px;
 }
-.label {
-  display: block;
-  margin: 10px 0 6px 0;
-  font-size: 13px;
-  color: #333;
+
+.logo {
+  font-size: clamp(42px, 4vw, 60px);
+  font-weight: 700;
+  letter-spacing: -1.5px;
+  margin-bottom: 24px;
+  text-shadow: 0 8px 30px rgba(0,0,0,0.2);
 }
+
+.tagline {
+  font-size: clamp(16px, 1.3vw, 20px);
+  line-height: 1.7;
+  opacity: 0.95;
+}
+
+/* ===== 右侧区域 ===== */
+
+.form-panel {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 40px;
+  background: #f5f5f7;
+}
+
+/* subtle 阴影分隔 */
+.form-panel::before {
+  content: "";
+  position: absolute;
+  left: -20px;
+  top: 0;
+  height: 100%;
+  width: 20px;
+  background: linear-gradient(
+    to right,
+    rgba(0,0,0,0.08),
+    transparent
+  );
+}
+
+/* ===== 毛玻璃卡片 ===== */
+
+.login-card {
+  width: 100%;
+  max-width: 360px;
+  padding: 40px;
+  border-radius: 22px;
+  backdrop-filter: blur(25px);
+  background: rgba(255,255,255,0.65);
+  box-shadow: 0 30px 60px rgba(0,0,0,0.15);
+}
+
+.login-card h2 {
+  font-size: 26px;
+  font-weight: 600;
+  margin-bottom: 30px;
+}
+
+/* ===== 输入框 ===== */
+
+.form-group {
+  margin-bottom: 18px;
+}
+
 .input {
   width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #ddd;
-  border-radius: 10px;
+  height: 48px;
+  border-radius: 14px;
+  border: 1px solid #e5e5ea;
+  padding: 0 16px;
+  font-size: 15px;
+  background: rgba(255,255,255,0.9);
+  transition: all 0.2s ease;
+}
+
+.input:focus {
   outline: none;
+  border-color: #0071e3;
+  box-shadow: 0 0 0 3px rgba(0,113,227,0.15);
 }
-.input:focus { border-color: #bbb; }
-.btn {
+
+/* ===== 按钮 ===== */
+
+.primary-btn {
   width: 100%;
-  margin-top: 14px;
-  padding: 10px 12px;
-  border: 1px solid #ddd;
-  border-radius: 10px;
+  height: 48px;
+  border-radius: 14px;
+  border: none;
+  font-size: 15px;
+  font-weight: 600;
+  background: #0071e3;
+  color: white;
   cursor: pointer;
-  background: #111;
-  color: #fff;
+  transition: all 0.2s ease;
 }
-.btn:disabled {
+
+.primary-btn:hover {
+  background: #005bb5;
+}
+
+.primary-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
-.error {
-  margin-top: 10px;
-  color: #b91c1c;
-  font-size: 13px;
+
+/* ===== 注册 ===== */
+
+.divider {
+  height: 1px;
+  background: #e5e5ea;
+  margin: 26px 0;
 }
+
+.register-row {
+  font-size: 14px;
+  color: #6e6e73;
+}
+
+.register-row a {
+  margin-left: 6px;
+  color: #0071e3;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.register-row a:hover {
+  text-decoration: underline;
+}
+
+.error-msg {
+  margin-top: 18px;
+  font-size: 14px;
+  color: #d93025;
+}
+
+/* ===== 移动端 ===== */
+
+@media (max-width: 900px) {
+  .login-page {
+    grid-template-columns: 1fr;
+  }
+
+  .brand-panel {
+    display: none;
+  }
+
+  .form-panel {
+    padding: 12vw;
+  }
+}
+
 </style>

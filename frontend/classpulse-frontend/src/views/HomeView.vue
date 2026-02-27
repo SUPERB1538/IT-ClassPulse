@@ -1,175 +1,124 @@
 <template>
-  <div class="page">
-    <!-- Top bar -->
+  <div class="page dashboard-page">
+    <!-- ===== Topbar ===== -->
     <header class="topbar">
       <div class="brand">ClassPulse</div>
+
       <div class="right">
-        <span v-if="me" class="user">{{ me.username }}</span>
-        <a v-if="me" href="#" @click.prevent="logoutNow" class="link">Logout</a>
+        <div v-if="me" class="user-wrapper">
+          <div class="avatar-container" @click.stop="toggleMenu">
+            <div
+              class="avatar"
+              :style="{ backgroundColor: avatarColor }"
+            >
+              {{ userInitial }}
+            </div>
+            <div class="arrow" :class="{ open: menuOpen }"></div>
+          </div>
+
+          <div v-if="menuOpen" class="dropdown">
+            <div class="dropdown-item" @click="go('/profile')">Profile</div>
+            <div class="dropdown-item" @click="go('/settings')">Settings</div>
+            <div class="dropdown-divider"></div>
+            <div class="dropdown-item danger" @click="logoutNow">Logout</div>
+          </div>
+        </div>
       </div>
     </header>
 
+    <!-- ===== Main Layout ===== -->
     <main class="main">
-      <!-- Left cards -->
+      <!-- Left Panel -->
       <section class="left">
         <div class="card" @click="go('/courses')">
-          <div class="card-title">Courses</div>
-          <div class="card-sub">Browse and manage your courses.</div>
-          <div class="card-action">View all →</div>
+          <div class="card-content">
+            <div>
+              <div class="card-title">Courses</div>
+              <div class="card-sub">
+                Browse and manage your courses.
+              </div>
+            </div>
+            <div class="card-action">View all</div>
+          </div>
         </div>
 
         <div class="card" @click="go('/assignments')">
-          <div class="card-title">Assignments</div>
-          <div class="card-sub">Check deadlines and progress.</div>
-          <div class="card-action">View all →</div>
-        </div>
-
-        <!-- ✅ Study Plans card + preview list -->
-        <div class="card" @click="go('/studyplans')">
-          <div class="card-title">Study Plans</div>
-          <div class="card-sub">Plan your study days before deadlines.</div>
-
-          <!-- preview list -->
-          <div class="plans-preview">
-            <div v-if="plansLoading" class="muted small">Loading...</div>
-            <div v-else-if="studyPlansPreview.length === 0" class="muted small">
-              No study plans yet.
+          <div class="card-content">
+            <div>
+              <div class="card-title">Assignments</div>
+              <div class="card-sub">
+                Check deadlines and progress.
+              </div>
             </div>
-
-            <ul v-else class="plans-list">
-              <li v-for="p in studyPlansPreview" :key="p.id" class="plan-item">
-                <div class="plan-main">
-                  <span class="plan-title">
-                    {{ p.assignment_title }} ({{ p.course_name }})
-                  </span>
-                </div>
-
-                <div class="plan-meta">
-                  {{ p.plan_days }} day{{ p.plan_days === 1 ? "" : "s" }}
-                  · Left: {{ p.time_left_human || formatSeconds(p.time_left_seconds) }}
-                </div>
-              </li>
-
-              <li v-if="studyPlans.length > studyPlansPreview.length" class="plan-more">
-                View all ({{ studyPlans.length }}) →
-              </li>
-            </ul>
+            <div class="card-action">View all</div>
           </div>
-
-          <div class="card-action">View all →</div>
         </div>
 
-        <div v-if="error" class="error">{{ error }}</div>
+        <div class="card" @click="go('/studyplans')">
+          <div class="card-content">
+            <div>
+              <div class="card-title">Study Plans</div>
+              <div class="card-sub">
+                Plan your study days before deadlines.
+              </div>
+            </div>
+            <div class="card-action">View all</div>
+          </div>
+        </div>
       </section>
 
       <!-- Timetable -->
       <section class="board">
         <div class="board-header">
           <div class="board-title">Your Timetable</div>
-          <a class="link" href="#" @click.prevent="onAddSession">+ Add class session</a>
+          <a class="link" href="#" @click.prevent="onAddSession">
+            + Add class session
+          </a>
         </div>
 
-        <div v-if="loading" class="muted pad">Loading timetable...</div>
-
-        <div class="table-wrap" v-else-if="dashboard">
-          <div style="overflow-x: auto;">
-            <table class="timetable">
-              <thead>
-                <tr>
-                  <th class="col-time">Time</th>
-                  <th v-for="d in dashboard.days" :key="d[0]">{{ d[1] }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="row in dashboard.rows" :key="row[0]">
-                  <td class="time">{{ row[0] }}</td>
-
-                  <template v-for="(cell, idx) in row[1]" :key="idx">
-                    <!-- skip 占位（rowspan 下方格子不渲染） -->
-                    <td v-if="cell && cell.skip" style="display:none;"></td>
-
-                    <!-- 空格 -->
-                    <td v-else-if="!cell" class="empty"></td>
-
-                    <!-- 有课 -->
-                    <td
-                      v-else
-                      class="session"
-                      :rowspan="cell.rowspan"
-                      @click="onSessionClick(cell)"
-                    >
-                      <div class="session-text">
-                        <div v-for="(line, i) in splitLines(cell.text)" :key="i">
-                          {{ line }}
-                        </div>
-                      </div>
-                    </td>
-                  </template>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+        <div v-if="loading" class="pad muted">
+          Loading timetable...
         </div>
 
-        <div v-else class="muted pad">
+        <div v-else-if="dashboard" class="table-wrap">
+          <table class="modern-table">
+            <thead>
+              <tr>
+                <th class="col-time">Time</th>
+                <th v-for="d in dashboard.days" :key="d[0]">
+                  {{ d[1] }}
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr v-for="row in dashboard.rows" :key="row[0]">
+                <td class="time">{{ row[0] }}</td>
+
+                <template v-for="(cell, idx) in row[1]" :key="idx">
+                  <td v-if="cell && cell.skip" style="display:none;"></td>
+                  <td v-else-if="!cell" class="empty"></td>
+
+                  <td
+                    v-else
+                    class="session"
+                    :rowspan="cell.rowspan"
+                  >
+                    <div class="session-text">
+                      {{ cell.text }}
+                    </div>
+                  </td>
+                </template>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div v-else class="pad muted">
           No timetable data.
         </div>
       </section>
     </main>
-
-    <!-- Add Class Session Modal -->
-    <div v-if="showAddSession" class="modal-mask" @click.self="showAddSession=false">
-      <div class="modal">
-        <div class="modal-title">Add class session</div>
-
-        <div class="form-row">
-          <label>Course</label>
-          <select v-model="sessionForm.course">
-            <option v-for="c in courses" :key="c.id" :value="c.id">
-              {{ c.course_name }}
-            </option>
-          </select>
-        </div>
-
-        <div class="form-row">
-          <label>Day</label>
-          <select v-model="sessionForm.day_of_week">
-            <option :value="1">Mon</option>
-            <option :value="2">Tue</option>
-            <option :value="3">Wed</option>
-            <option :value="4">Thu</option>
-            <option :value="5">Fri</option>
-            <option :value="6">Sat</option>
-            <option :value="7">Sun</option>
-          </select>
-        </div>
-
-        <div class="grid2">
-          <div class="form-row">
-            <label>Start</label>
-            <input type="time" v-model="sessionForm.start_time" />
-          </div>
-          <div class="form-row">
-            <label>End</label>
-            <input type="time" v-model="sessionForm.end_time" />
-          </div>
-        </div>
-
-        <div class="form-row">
-          <label>Location</label>
-          <input v-model="sessionForm.location" placeholder="Optional" />
-        </div>
-
-        <div v-if="sessionError" class="error">{{ sessionError }}</div>
-
-        <div class="actions">
-          <button class="btn" @click="showAddSession=false">Cancel</button>
-          <button class="btn primary" @click="addClassSession" :disabled="!sessionForm.course">
-            Add
-          </button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -184,385 +133,275 @@ const router = useRouter();
 const me = ref(null);
 const dashboard = ref(null);
 const loading = ref(true);
-const error = ref("");
+const menuOpen = ref(false);
 
-const courses = ref([]);
-const showAddSession = ref(false);
-
-const sessionForm = ref({
-  course: "",
-  day_of_week: 1,
-  start_time: "09:00",
-  end_time: "10:00",
-  location: "",
+/* ===== 首字母 ===== */
+const userInitial = computed(() => {
+  if (!me.value?.username) return "";
+  return me.value.username.charAt(0).toUpperCase();
 });
 
-const sessionError = ref("");
+/* ===== 稳定随机颜色 ===== */
+function stringToColor(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue}, 65%, 55%)`;
+}
 
-// Study plans preview data
-const studyPlans = ref([]);
-const plansLoading = ref(false);
-const studyPlansPreview = computed(() => studyPlans.value.slice(0, 3));
+const avatarColor = computed(() => {
+  if (!me.value?.username) return "#0071e3";
+  return stringToColor(me.value.username);
+});
 
-function splitLines(text) {
-  return String(text || "").split("\n");
+/* ===== 菜单控制 ===== */
+function toggleMenu() {
+  menuOpen.value = !menuOpen.value;
+}
+
+function handleClickOutside(event) {
+  const wrapper = document.querySelector(".user-wrapper");
+  if (wrapper && !wrapper.contains(event.target)) {
+    menuOpen.value = false;
+  }
 }
 
 function go(path) {
+  menuOpen.value = false;
   router.push(path);
 }
 
-function formatSeconds(secs) {
-  if (typeof secs !== "number") return "—";
-  if (secs <= 0) return "Overdue";
-  const days = Math.floor(secs / 86400);
-  const hours = Math.floor((secs % 86400) / 3600);
-  const mins = Math.floor((secs % 3600) / 60);
-  if (days > 0) return `${days}d ${hours}h`;
-  if (hours > 0) return `${hours}h ${mins}m`;
-  return `${mins}m`;
-}
-
-async function loadStudyPlans() {
-  plansLoading.value = true;
-  try {
-    const res = await api.get("/studyplans/");
-    studyPlans.value = res.data || [];
-  } catch (e) {
-    studyPlans.value = [];
-  } finally {
-    plansLoading.value = false;
-  }
-}
-
-async function onAddSession() {
-  sessionError.value = "";
-  showAddSession.value = true;
-
-  try {
-    await loadCourses();
-  } catch (e) {
-    sessionError.value = "Failed to load courses";
-  }
-}
-
-function onSessionClick(cell) {
-  alert(`session id: ${cell.session_id}\n${cell.text}`);
-}
-
 async function logoutNow() {
-  error.value = "";
-  try {
-    await doLogout();
-    router.replace("/login");
-  } catch (e) {
-    error.value = e?.response?.data ? JSON.stringify(e.response.data) : String(e);
-  }
+  menuOpen.value = false;
+  await doLogout();
+  router.replace("/login");
 }
 
 async function loadAll() {
   loading.value = true;
-  error.value = "";
-  try {
-    await ensureCsrf();
+  await ensureCsrf();
 
-    const m = await getMe();
-    if (!m?.ok) {
-      router.replace("/login");
-      return;
-    }
-    me.value = m;
-
-    const res = await api.get("/dashboard/");
-    dashboard.value = res.data;
-
-    await loadStudyPlans();
-  } catch (e) {
-    const status = e?.response?.status;
-    if (status === 403 || status === 401) {
-      router.replace("/login");
-      return;
-    }
-    error.value = e?.response?.data ? JSON.stringify(e.response.data) : String(e);
-  } finally {
-    loading.value = false;
+  const m = await getMe();
+  if (!m?.ok) {
+    router.replace("/login");
+    return;
   }
+  me.value = m;
+
+  const res = await api.get("/dashboard/");
+  dashboard.value = res.data;
+
+  loading.value = false;
 }
 
-async function loadCourses() {
-  const res = await api.get("/courses/");
-  courses.value = res.data || [];
-  if (!sessionForm.value.course && courses.value.length) {
-    sessionForm.value.course = courses.value[0].id;
-  }
+function onAddSession() {
+  alert("Add session modal");
 }
 
-async function addClassSession() {
-  sessionError.value = "";
-  try {
-    await ensureCsrf();
-
-    await api.post("/sessions/", {
-      course: sessionForm.value.course,
-      day_of_week: Number(sessionForm.value.day_of_week),
-      start_time: sessionForm.value.start_time,
-      end_time: sessionForm.value.end_time,
-      location: sessionForm.value.location || "",
-    });
-
-    showAddSession.value = false;
-
-    const dashRes = await api.get("/dashboard/");
-    dashboard.value = dashRes.data;
-  } catch (e) {
-    const data = e?.response?.data;
-    sessionError.value = data
-      ? (data.overlap || data.time || data.detail || JSON.stringify(data))
-      : String(e);
-  }
-}
-
-onMounted(async () => {
-  await loadCourses();
-  await loadAll();
+onMounted(() => {
+  loadAll();
+  document.addEventListener("click", handleClickOutside);
 });
 </script>
 
 <style scoped>
-.page {
+
+/* ===== Page ===== */
+.dashboard-page {
   min-height: 100vh;
-  background: #fff;
+  background: #f5f5f7;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display",
+               "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
+/* ===== Topbar ===== */
 .topbar {
-  height: 56px;
+  height: 64px;
+  padding: 0 48px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 22px;
-  border-bottom: 1px solid #eee;
+  background: rgba(255,255,255,0.75);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid #e5e5e7;
 }
 
 .brand {
+  font-size: 22px;
   font-weight: 600;
+  letter-spacing: -0.3px;
 }
 
-.right {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.user {
-  color: #222;
-}
-
-.link {
-  color: #3b82f6;
-  text-decoration: none;
-  cursor: pointer;
-}
-.link:hover {
-  text-decoration: underline;
-}
-
-.muted {
-  color: #666;
-}
-.small {
-  font-size: 12px;
-}
-
-.pad {
-  padding: 12px 14px 14px 14px;
-}
-
+/* ===== Layout ===== */
 .main {
   display: grid;
-  grid-template-columns: 320px 1fr;
-  gap: 22px;
-  padding: 24px 22px;
-  max-width: 1200px;
+  grid-template-columns: 260px 1fr;
+  gap: 32px;
+  padding: 48px 64px;
+  max-width: 1600px;
   margin: 0 auto;
 }
 
-/* left cards */
+/* ===== Cards ===== */
 .left .card {
-  border: 1px solid #e6e6e6;
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 14px;
+  background: rgba(255,255,255,0.85);
+  border-radius: 20px;
+  padding: 22px;
+  margin-bottom: 20px;
+  box-shadow:
+    0 2px 8px rgba(0,0,0,0.04),
+    0 20px 40px rgba(0,0,0,0.06);
+  transition: all 0.25s ease;
   cursor: pointer;
-  background: #fff;
 }
+
 .left .card:hover {
-  border-color: #d4d4d4;
+  transform: translateY(-4px);
 }
+
 .card-title {
-  font-weight: 700;
-  margin-bottom: 4px;
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
 }
+
 .card-sub {
-  color: #666;
-  font-size: 13px;
+  font-size: 15px;
+  color: #6e6e73;
+  line-height: 1.5;
 }
+
 .card-action {
-  margin-top: 10px;
-  color: #666;
-  font-size: 13px;
-  text-align: right;
+  align-self: flex-end;
+  margin-top: 18px;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 6px 16px;
+  border-radius: 20px;
+  background: #f2f2f7;
+  color: #0071e3;
+  transition: all 0.2s ease;
 }
 
-/* study plans preview */
-.plans-preview {
-  margin-top: 10px;
-}
-.plans-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-.plan-item {
-  border-top: 1px solid #f0f0f0;
-  padding: 10px 0;
-}
-.plan-title {
-  font-weight: 600;
-  font-size: 13px;
-}
-.plan-meta {
-  margin-top: 4px;
-  color: #666;
-  font-size: 12px;
-}
-.plan-more {
-  border-top: 1px solid #f0f0f0;
-  padding-top: 10px;
-  margin-top: 6px;
-  color: #666;
-  font-size: 12px;
-  text-align: right;
+.card-action:hover {
+  background: #e5e5ea;
 }
 
-/* board */
+/* ===== Board ===== */
 .board {
-  border: 1px solid #e6e6e6;
-  border-radius: 12px;
-  background: #fff;
-}
-.board-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 14px 8px 14px;
-}
-.board-title {
-  font-weight: 700;
-}
-.table-wrap {
-  padding: 0 14px 14px 14px;
+  background: rgba(255,255,255,0.9);
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow:
+    0 2px 10px rgba(0,0,0,0.05),
+    0 30px 80px rgba(0,0,0,0.06);
 }
 
-.timetable {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;
-}
-.timetable th,
-.timetable td {
-  border: 1px solid #e3e3e3;
-  padding: 0;
-}
-.col-time {
-  width: 80px;
-}
-.time {
+.board-title {
+  font-size: 22px;
   font-weight: 600;
-  font-size: 12px;
-  text-align: center;
+}
+
+.modern-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 14px;
+}
+
+.modern-table th {
+  background: #f2f2f7;
+  color: #6e6e73;
+  font-weight: 500;
+  padding: 12px;
+}
+
+.modern-table td {
+  border: 1px solid #f2f2f7;
+}
+
+.time {
+  font-weight: 500;
+  color: #6e6e73;
   background: #fafafa;
 }
-.empty {
-  height: 28px;
-  background: #fff;
-}
+
 .session {
-  background: #eef6ff;
-  vertical-align: middle;
+  background: rgba(0,113,227,0.12);
+  border-radius: 12px;
+}
+
+.session:hover {
+  background: rgba(0,113,227,0.2);
+}
+
+/* ===== Avatar ===== */
+.user-wrapper {
+  position: relative;
+}
+
+.avatar-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   cursor: pointer;
 }
-.session-text {
-  padding: 10px;
-  font-size: 12px;
-  line-height: 1.25;
-  white-space: pre-line;
-}
 
-.error {
-  margin-top: 10px;
-  color: #b91c1c;
-  font-size: 13px;
-}
-
-/* modal */
-.modal-mask{
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.25);
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  color: white;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
-.modal{
-  width: 420px;
-  background: #fff;
-  border-radius: 12px;
-  padding: 16px;
-  box-shadow: 0 10px 30px rgba(0,0,0,.15);
+
+.arrow {
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid #6e6e73;
+  transition: transform 0.2s ease;
 }
-.modal-title{
-  font-weight: 700;
-  margin-bottom: 10px;
+
+.arrow.open {
+  transform: rotate(180deg);
 }
-.form-row{
-  display:flex;
-  flex-direction:column;
-  gap:6px;
-  margin: 10px 0;
+
+.dropdown {
+  position: absolute;
+  top: 55px;
+  right: 0;
+  width: 180px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 12px 28px rgba(0,0,0,0.15);
+  padding: 8px 0;
 }
-.form-row input, .form-row select{
-  height: 36px;
-  border: 1px solid #ddd;
-  border-radius: 10px;
-  padding: 0 10px;
+
+.dropdown-item {
+  padding: 10px 16px;
+  font-size: 14px;
 }
-.grid2{
-  display:grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+
+.dropdown-item:hover {
+  background: #f2f2f7;
 }
-.actions{
-  display:flex;
-  justify-content:flex-end;
-  gap: 10px;
-  margin-top: 12px;
+
+.dropdown-item.danger {
+  color: #dc2626;
 }
-.btn{
-  height: 36px;
-  padding: 0 14px;
-  border-radius: 10px;
-  border: 1px solid #ddd;
-  background: #f5f5f5;
-  cursor:pointer;
-}
-.btn.primary{
-  background:#111;
-  color:#fff;
-  border-color:#111;
-}
-.btn:disabled{
-  opacity: .5;
-  cursor: not-allowed;
+
+.dropdown-divider {
+  height: 1px;
+  background: #e5e5e7;
+  margin: 6px 0;
 }
 </style>
