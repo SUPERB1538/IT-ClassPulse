@@ -399,7 +399,7 @@ gap:10px;
 
 .meta{
 font-size:13px;
-color:#666;
+color:#a32929;
 margin-top:4px;
 }
 
