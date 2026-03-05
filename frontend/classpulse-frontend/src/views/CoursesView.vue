@@ -4,7 +4,7 @@
     <!-- top bar -->
     <div class="topbar">
       <h2>Courses</h2>
-      <button class="btn ghost" @click="router.push('/')">← Home</button>
+      <button class="btn" @click="router.push('/')">← Home</button>
     </div>
 
     <!-- add course -->
@@ -25,7 +25,7 @@
         />
 
         <button
-          class="btn"
+          class="btn add-btn"
           :disabled="loading"
           @click="createCourse"
         >
@@ -295,7 +295,7 @@ onMounted(fetchCourses)
 .row{
   display:flex;
   gap:12px;
-  flex-wrap:wrap;
+  align-items:center;
 }
 
 /* inputs */
@@ -333,12 +333,16 @@ onMounted(fetchCourses)
 }
 
 .btn.ghost{
-  background:#f3f4f6;
+  background:#d9dfe2;
   color:#111;
 }
 
 .btn.danger{
   background:#dc2626;
+}
+
+.add-btn{
+  margin-left:auto;
 }
 
 /* list */
@@ -357,6 +361,7 @@ onMounted(fetchCourses)
   border:1px solid #eee;
   margin-bottom:12px;
   transition:.2s;
+  background:#f8fafc;
 }
 
 .item:hover{
