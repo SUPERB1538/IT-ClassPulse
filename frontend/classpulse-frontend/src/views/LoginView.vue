@@ -1,6 +1,6 @@
 <template>
   <div class="login-page">
-    <!-- 左侧品牌区域 -->
+    <!-- Left -->
     <div class="brand-panel">
       <div class="brand-content">
         <h1 class="logo">ClassPulse</h1>
@@ -12,7 +12,7 @@
       </div>
     </div>
 
-    <!-- 右侧登录区域 -->
+    <!-- Right -->
     <div class="form-panel">
       <form class="login-card" @submit.prevent="doLogin">
         <h2>Welcome Back</h2>
@@ -103,8 +103,6 @@ async function doLogin() {
 
 <style scoped>
 
-/* ===== 基础布局 ===== */
-
 .login-page {
   min-height: 100vh;
   display: grid;
@@ -113,7 +111,7 @@ async function doLogin() {
                "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
 }
 
-/* ===== 左侧渐变动画 ===== */
+/* ===== Left Cartoon ===== */
 
 .brand-panel {
   display: flex;
@@ -156,7 +154,7 @@ async function doLogin() {
   opacity: 0.95;
 }
 
-/* ===== 右侧区域 ===== */
+/* ===== Right ===== */
 
 .form-panel {
   position: relative;
@@ -167,7 +165,7 @@ async function doLogin() {
   background: #f5f5f7;
 }
 
-/* subtle 阴影分隔 */
+/* Shadow */
 .form-panel::before {
   content: "";
   position: absolute;
@@ -182,7 +180,7 @@ async function doLogin() {
   );
 }
 
-/* ===== 毛玻璃卡片 ===== */
+/* ===== Card ===== */
 
 .login-card {
   width: 100%;
@@ -200,7 +198,7 @@ async function doLogin() {
   margin-bottom: 30px;
 }
 
-/* ===== 输入框 ===== */
+/* ===== Input ===== */
 
 .form-group {
   margin-bottom: 18px;
@@ -223,7 +221,7 @@ async function doLogin() {
   box-shadow: 0 0 0 3px rgba(0,113,227,0.15);
 }
 
-/* ===== 按钮 ===== */
+/* ===== Button ===== */
 
 .primary-btn {
   width: 100%;
@@ -247,7 +245,7 @@ async function doLogin() {
   cursor: not-allowed;
 }
 
-/* ===== 注册 ===== */
+/* ===== Register ===== */
 
 .divider {
   height: 1px;
@@ -278,7 +276,7 @@ async function doLogin() {
   color: #d93025;
 }
 
-/* ===== 移动端 ===== */
+/* ===== Mobile ===== */
 
 @media (max-width: 900px) {
   .login-page {

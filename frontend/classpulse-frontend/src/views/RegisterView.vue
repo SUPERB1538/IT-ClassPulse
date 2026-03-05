@@ -1,7 +1,7 @@
 <template>
   <div class="register-page">
 
-    <!-- 左侧品牌 -->
+    <!-- Left -->
     <div class="brand-panel">
       <div class="brand-content">
         <h1 class="logo">ClassPulse</h1>
@@ -13,7 +13,7 @@
       </div>
     </div>
 
-    <!-- 右侧注册 -->
+    <!-- Right -->
     <div class="form-panel">
       <form class="register-card" @submit.prevent="doRegister">
 
@@ -142,7 +142,7 @@ async function doRegister(){
 
 <style scoped>
 
-/* 页面布局 */
+/* Page */
 
 .register-page{
   min-height:100vh;
@@ -152,7 +152,7 @@ async function doRegister(){
   "SF Pro Text","Helvetica Neue",Arial,sans-serif;
 }
 
-/* 左侧渐变 */
+/* Left */
 
 .brand-panel{
   display:flex;
@@ -196,7 +196,7 @@ async function doRegister(){
   opacity:.95;
 }
 
-/* 右侧区域 */
+/* Right */
 
 .form-panel{
   position:relative;
@@ -222,7 +222,7 @@ async function doRegister(){
   );
 }
 
-/* 卡片 */
+/* Card */
 
 .register-card{
   width:100%;
@@ -243,7 +243,7 @@ async function doRegister(){
   margin-bottom:30px;
 }
 
-/* 输入框 */
+/* Input */
 
 .form-group{
   margin-bottom:16px;
@@ -267,7 +267,7 @@ async function doRegister(){
   box-shadow:0 0 0 3px rgba(0,113,227,.15);
 }
 
-/* 按钮 */
+/* Button */
 
 .primary-btn{
   width:100%;
@@ -293,7 +293,7 @@ async function doRegister(){
   opacity:.6;
 }
 
-/* 其他 */
+/* Other */
 
 .divider{
   height:1px;
@@ -328,7 +328,7 @@ async function doRegister(){
   color:#16a34a;
 }
 
-/* 手机 */
+/* Mobile */
 
 @media(max-width:900px){
 

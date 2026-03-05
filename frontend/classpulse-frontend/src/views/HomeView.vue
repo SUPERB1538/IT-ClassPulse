@@ -6,7 +6,15 @@
 
       <div class="right">
         <div v-if="me" class="user-wrapper">
-          <div class="avatar-container" @click.stop="toggleMenu">
+          <div class="avatar-container"
+                tabindex="0"
+                role="button"
+                aria-haspopup="menu"
+                :aria-expanded="menuOpen"
+                @click.stop="toggleMenu"
+                @keydown.enter.prevent="toggleMenu"
+                @keydown.space.prevent="toggleMenu"
+                @keydown.esc.prevent="menuOpen=false">
             <div class="avatar" :style="{ backgroundColor: avatarColor }">
               {{ userInitial }}
             </div>
@@ -14,7 +22,12 @@
           </div>
 
           <div v-if="menuOpen" class="dropdown">
-            <div class="dropdown-item danger" @click="logoutNow">Logout</div>
+            <div class="dropdown-item danger"
+                  role="menuitem"
+                  tabindex="0"
+                  @click="logoutNow"
+                  @keydown.enter.prevent="logoutNow"
+                  @keydown.space.prevent="logoutNow">Logout</div>
           </div>
         </div>
       </div>
@@ -24,7 +37,12 @@
     <main class="main">
       <!-- Left Panel -->
       <section class="left">
-        <div class="card" @click="go('/courses')">
+        <div class="card"
+              role="button"
+              tabindex="0"
+              @click="go('/courses')"
+              @keydown.enter.prevent="go('/courses')"
+              @keydown.space.prevent="go('/courses')">
           <div class="card-content">
             <div>
               <div class="card-title">Courses</div>
@@ -34,7 +52,12 @@
           </div>
         </div>
 
-        <div class="card" @click="go('/assignments')">
+        <div class="card"
+              role="button"
+              tabindex="0"
+              @click="go('/assignments')"
+              @keydown.enter.prevent="go('/assignments')"
+              @keydown.space.prevent="go('/assignments')">
           <div class="card-content">
             <div>
               <div class="card-title">Assignments</div>
@@ -44,7 +67,12 @@
           </div>
         </div>
 
-        <div class="card" @click="go('/studyplans')">
+        <div class="card"
+              role="button"
+              tabindex="0"
+              @click="go('/studyplans')"
+              @keydown.enter.prevent="go('/studyplans')"
+              @keydown.space.prevent="go('/studyplans')">
           <div class="card-content">
             <div>
               <div class="card-title">Study Plans</div>
@@ -79,19 +107,30 @@
                   <td class="time">{{ row[0] }}</td>
 
                   <template v-for="(cell, idx) in row[1]" :key="idx">
-                    <td v-if="cell && cell.skip" style="display:none;"></td>
+                    <template v-if="cell && cell.skip"></template>
+
                     <td v-else-if="!cell" class="empty"></td>
 
                     <td
                       v-else
                       class="session"
                       :rowspan="cell.rowspan"
+                      tabindex="0"
+                      role="button"
+                      :aria-label="`Session ${cell.text}`"
                       @click="onSessionClick(cell)"
+                      @keydown.enter.prevent="onSessionClick(cell)"
+                      @keydown.space.prevent="onSessionClick(cell)"
                       title="Click to edit"
                     >
-                      <div class="session-text">{{ cell.text }}</div>
-                    </td>
-                  </template>
+                    <div class="session-text">
+                      <div class="session-title">{{ cell.title }}</div>
+                      <div class="session-subtitle" :title="cell.subtitle">
+                        {{ cell.subtitle }}
+                      </div>
+                    </div>
+                  </td>
+                </template>
                 </tr>
               </tbody>
             </table>
@@ -106,7 +145,7 @@
     <div v-if="showAddSession" class="modal-mask" @click.self="showAddSession = false">
       <div class="modal">
         <div class="modal-header">
-          <div class="modal-title">Add class session</div>
+          <div class="modal-title">{{ modalMode === "add" ? "Add class session" : "Edit class session" }}</div>
           <button class="iconbtn" @click="showAddSession = false">✕</button>
         </div>
 
@@ -152,9 +191,24 @@
         <div v-if="sessionError" class="error">{{ sessionError }}</div>
 
         <div class="modal-actions">
-          <button class="btn ghost" @click="showAddSession = false">Cancel</button>
-          <button class="btn" :disabled="!sessionForm.course || addingSession" @click="addClassSession">
-            {{ addingSession ? "Adding..." : "Add" }}
+          <button
+            v-if="modalMode === 'edit'"
+            class="btn ghost danger"
+            @click="deleteSession"
+          >
+            Delete
+          </button>
+
+          <button class="btn ghost" @click="showAddSession = false">
+            Cancel
+          </button>
+
+          <button
+            class="btn"
+            :disabled="!sessionForm.course || addingSession"
+            @click="addClassSession"
+          >
+            {{ addingSession ? "Saving..." : (modalMode === "add" ? "Add" : "Save") }}
           </button>
         </div>
       </div>
@@ -176,6 +230,9 @@ const loading = ref(true);
 
 const menuOpen = ref(false);
 
+const modalMode = ref("add"); 
+const editingSessionId = ref(null);
+
 /* ===== Modal state ===== */
 const showAddSession = ref(false);
 const courses = ref([]);
@@ -190,13 +247,13 @@ const sessionForm = ref({
   location: "",
 });
 
-/* ===== 首字母 ===== */
+/* ===== First name ===== */
 const userInitial = computed(() => {
   if (!me.value?.username) return "";
   return me.value.username.charAt(0).toUpperCase();
 });
 
-/* ===== 稳定随机颜色 ===== */
+/* ===== Color ===== */
 function stringToColor(str) {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -211,7 +268,7 @@ const avatarColor = computed(() => {
   return stringToColor(me.value.username);
 });
 
-/* ===== 菜单控制 ===== */
+/* ===== menu ===== */
 function toggleMenu() {
   menuOpen.value = !menuOpen.value;
 }
@@ -263,6 +320,16 @@ async function loadCourses() {
 /* ===== add session ===== */
 async function onAddSession() {
   sessionError.value = "";
+  modalMode.value = "add";
+  editingSessionId.value = null;
+  sessionForm.value = {
+    course: "",
+    day_of_week: 1,
+    start_time: "09:00",
+    end_time: "10:00",
+    location: "",
+  };
+
   showAddSession.value = true;
 
   try {
@@ -272,9 +339,44 @@ async function onAddSession() {
   }
 }
 
-function onSessionClick(cell) {
-  // 你后续可以换成自定义 modal，这里先保留调试信息
-  alert(`session id: ${cell.session_id}\n${cell.text}`);
+async function deleteSession() {
+  if (!editingSessionId.value) return;
+  const ok = confirm("Delete this class session?");
+  if (!ok) return;
+  try {
+    await ensureCsrf();
+    await api.delete(`/sessions/${editingSessionId.value}/`);
+    const dashRes = await api.get("/dashboard/");
+    dashboard.value = dashRes.data;
+    showAddSession.value = false;
+  } catch (e) {
+    sessionError.value = "Failed to delete session.";
+  }
+}
+
+async function onSessionClick(cell) {
+  sessionError.value = "";
+  modalMode.value = "edit";
+  editingSessionId.value = cell.session_id;
+
+  showAddSession.value = true;
+
+  try {
+    await ensureCsrf();
+    await loadCourses();
+    const res = await api.get(`/sessions/${cell.session_id}/`);
+    const s = res.data;
+
+    sessionForm.value = {
+      course: String(s.course), 
+      day_of_week: Number(s.day_of_week),
+      start_time: s.start_time?.slice(0,5) || "09:00",
+      end_time: s.end_time?.slice(0,5) || "10:00",
+      location: s.location || "",
+    };
+  } catch (e) {
+    sessionError.value = "Failed to load this session.";
+  }
 }
 
 async function addClassSession() {
@@ -301,6 +403,9 @@ async function addClassSession() {
     // refresh dashboard
     const dashRes = await api.get("/dashboard/");
     dashboard.value = dashRes.data;
+    // close modal
+    showAddSession.value = false;
+    menuOpen.value = false;
   } catch (e) {
     const data = e?.response?.data;
     sessionError.value = data
@@ -460,6 +565,7 @@ onMounted(() => {
   font-size: 14px;
   overflow: hidden;
   border-radius: 16px;
+  table-layout: fixed;
 }
 
 .col-time {
@@ -503,9 +609,8 @@ onMounted(() => {
   cursor: pointer;
   transition: background 0.15s ease, transform 0.15s ease;
 
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  vertical-align: middle;
+  text-align: center;
 }
 
 .session:hover {
@@ -513,16 +618,33 @@ onMounted(() => {
   transform: translateY(-1px);
 }
 
-.session-text {
+.session-text{
   padding: 10px;
   text-align: center;
-  white-space: pre-line;
+}
 
+.session-title{
   font-size: 13px;
-  font-weight: 500;
-  line-height: 1.35;
-
+  font-weight: 600;
   color: #1d1d1f;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.session-subtitle{
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #6e6e73;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; 
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* ===== Avatar ===== */
@@ -704,5 +826,13 @@ onMounted(() => {
   margin-top: 8px;
   color: #dc2626;
   font-size: 13px;
+}
+
+.btn.danger {
+  color: #dc2626;
+}
+
+.btn.danger:hover {
+  background: rgba(220,38,38,0.08);
 }
 </style>

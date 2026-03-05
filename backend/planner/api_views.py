@@ -10,7 +10,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from django.contrib.auth.models import User
-
+from django.utils import timezone
 from .models import Course, ClassSession, Assignment, StudyPlan
 from .serializers import CourseSerializer, ClassSessionSerializer, AssignmentSerializer, StudyPlanSerializer
 
@@ -117,12 +117,16 @@ def dashboard_api(request):
         minutes = int((end_dt - start_dt).total_seconds() // 60)
         span = max(1, math.ceil(minutes / step))
 
-        text = s.course.course_name
-        if s.location:
-            text += f"\n{s.location}"
-
+        title = s.course.course_name
+        subtitle = s.location or ""
+        
         if start_label in grid:
-            grid[start_label][s.day_of_week] = {"text": text, "rowspan": span, "session_id": s.id}
+            grid[start_label][s.day_of_week] = {
+                "title": title,
+                "subtitle": subtitle,
+                "rowspan": span,
+                "session_id": s.id
+            }
 
             dt = start_dt + timedelta(minutes=step)
             for _ in range(span - 1):
@@ -230,8 +234,17 @@ class AssignmentViewSet(viewsets.ModelViewSet):
             qs = qs.filter(Q(title__icontains=q) | Q(course__course_name__icontains=q))
 
         status = (self.request.query_params.get("status") or "").strip()
+        now = timezone.now()
+
         if status:
-            qs = qs.filter(status=status)
+            if status == "overdue":
+                qs = qs.filter(status="pending", due_date__lt=now)
+            elif status == "pending":
+                qs = qs.filter(status="pending", due_date__gte=now)
+            elif status == "completed":
+                qs = qs.filter(status="completed")
+            else:
+                qs = qs.none()
 
         return qs
 
