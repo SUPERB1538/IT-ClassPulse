@@ -14,9 +14,6 @@
           </div>
 
           <div v-if="menuOpen" class="dropdown">
-            <div class="dropdown-item" @click="go('/profile')">Profile</div>
-            <div class="dropdown-item" @click="go('/settings')">Settings</div>
-            <div class="dropdown-divider"></div>
             <div class="dropdown-item danger" @click="logoutNow">Logout</div>
           </div>
         </div>
@@ -500,6 +497,10 @@ onMounted(() => {
   border-radius: 12px;
   cursor: pointer;
   transition: background 0.15s ease, transform 0.15s ease;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .session:hover {
@@ -508,8 +509,15 @@ onMounted(() => {
 }
 
 .session-text {
-  padding: 10px 12px;
+  padding: 10px;
+  text-align: center;
   white-space: pre-line;
+
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.35;
+
+  color: #1d1d1f;
 }
 
 /* ===== Avatar ===== */
