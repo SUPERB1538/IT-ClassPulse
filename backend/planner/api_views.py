@@ -240,7 +240,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
             if status == "overdue":
                 qs = qs.filter(status="pending", due_date__lt=now)
             elif status == "pending":
-                qs = qs.filter(status="pending", due_date__gte=now)   # ✅ 关键：排除 overdue
+                qs = qs.filter(status="pending", due_date__gte=now)
             elif status == "completed":
                 qs = qs.filter(status="completed")
             else:
