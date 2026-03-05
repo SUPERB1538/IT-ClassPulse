@@ -87,6 +87,7 @@
                       class="session"
                       :rowspan="cell.rowspan"
                       @click="onSessionClick(cell)"
+                      title="Click to edit"
                     >
                       <div class="session-text">{{ cell.text }}</div>
                     </td>
@@ -283,15 +284,19 @@ async function addClassSession() {
   try {
     await ensureCsrf();
 
-    await api.post("/sessions/", {
-      course: sessionForm.value.course,
+    const payload = {
+      course: Number(sessionForm.value.course),
       day_of_week: Number(sessionForm.value.day_of_week),
       start_time: sessionForm.value.start_time,
       end_time: sessionForm.value.end_time,
       location: sessionForm.value.location || "",
-    });
+    };
 
-    showAddSession.value = false;
+    if (modalMode.value === "add") {
+      await api.post("/sessions/", payload);
+    } else {
+      await api.patch(`/sessions/${editingSessionId.value}/`, payload);
+    }
 
     // refresh dashboard
     const dashRes = await api.get("/dashboard/");

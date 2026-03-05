@@ -36,14 +36,19 @@ class ClassSession(models.Model):
 
 class Assignment(models.Model):
     STATUS_CHOICES = [
-    ("pending", "Pending"),
-    ("completed", "Completed"),
+        ("pending", "Pending"),
+        ("completed", "Completed"),
     ]
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="assignments")
     title = models.CharField(max_length=200)
     due_date = models.DateTimeField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     weighting = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["course", "title"], name="uniq_assignment_title_per_course")
+        ]
 
     def __str__(self):
         return self.title
@@ -54,17 +59,11 @@ class Assignment(models.Model):
 
     @property
     def is_overdue(self):
-        return (
-            self.status != "completed"
-            and self.due_date < timezone.now()
-        )
+        return self.status != "completed" and self.due_date < timezone.now()
 
     @property
     def is_pending(self):
-        return (
-            self.status != "completed"
-            and self.due_date >= timezone.now()
-        )
+        return self.status != "completed" and self.due_date >= timezone.now()
 
 
 class StudyPlan(models.Model):

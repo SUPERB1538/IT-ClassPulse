@@ -184,13 +184,46 @@ class ClassSessionViewSet(viewsets.ModelViewSet):
             raise ValidationError({"overlap": "Time overlaps with an existing class session"})
 
         serializer.save()
+        
+    def perform_update(self, serializer):
+        instance = serializer.instance
+        if instance.course.user_id != self.request.user.id:
+            raise PermissionDenied("You don't own this course")
+
+        course = serializer.validated_data.get("course", instance.course)
+        if course.user_id != self.request.user.id:
+            raise PermissionDenied("You don't own this course")
+
+        day = serializer.validated_data.get("day_of_week", instance.day_of_week)
+        start = serializer.validated_data.get("start_time", instance.start_time)
+        end = serializer.validated_data.get("end_time", instance.end_time)
+
+        if start >= end:
+            raise ValidationError({"time": "start_time must be earlier than end_time"})
+
+        overlap = ClassSession.objects.filter(
+            course__user=self.request.user,
+            day_of_week=day
+        ).exclude(id=instance.id).filter(
+            Q(start_time__lt=end) & Q(end_time__gt=start)
+        ).exists()
+
+        if overlap:
+            raise ValidationError({"overlap": "Time overlaps with an existing class session"})
+
+        serializer.save()
 
 
 class AssignmentViewSet(viewsets.ModelViewSet):
     serializer_class = AssignmentSerializer
 
     def get_queryset(self):
-        qs = Assignment.objects.filter(course__user=self.request.user).select_related("course").order_by("due_date")
+        qs = (
+            Assignment.objects
+            .filter(course__user=self.request.user)
+            .select_related("course")
+            .order_by("due_date")
+        )
 
         q = (self.request.query_params.get("q") or "").strip()
         if q:
@@ -206,7 +239,37 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         course = serializer.validated_data["course"]
         if course.user_id != self.request.user.id:
             raise PermissionDenied("You don't own this course")
-        serializer.save()
+
+        title = (serializer.validated_data.get("title") or "").strip()
+        if not title:
+            raise ValidationError({"title": "title required"})
+
+        if Assignment.objects.filter(course=course, title__iexact=title).exists():
+            raise ValidationError({"title": "This title already exists in this course."})
+
+        serializer.save(title=title)
+
+    def perform_update(self, serializer):
+        obj = serializer.instance
+        course = obj.course
+
+        if course.user_id != self.request.user.id:
+            raise PermissionDenied("You don't own this course")
+
+        title = serializer.validated_data.get("title", obj.title)
+        title = (title or "").strip()
+        if not title:
+            raise ValidationError({"title": "title required"})
+
+        if (
+            Assignment.objects
+            .filter(course=course, title__iexact=title)
+            .exclude(id=obj.id)
+            .exists()
+        ):
+            raise ValidationError({"title": "This title already exists in this course."})
+
+        serializer.save(title=title)
 
     @action(detail=True, methods=["post"], url_path="status")
     def set_status(self, request, pk=None):
