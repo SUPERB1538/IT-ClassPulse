@@ -812,6 +812,7 @@ onBeforeUnmount(() => {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   overflow: hidden;
 }
 
@@ -822,6 +823,7 @@ onBeforeUnmount(() => {
   color: #6e6e73;
   display: -webkit-box;
   -webkit-line-clamp: 2; 
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -1198,6 +1200,38 @@ onBeforeUnmount(() => {
 
   .session-subtitle {
     font-size: 11px;
+  }
+
+  .modal-mask {
+    padding: 12px;
+    align-items: flex-start;
+    overflow-y: auto;
+  }
+
+  .modal {
+    width: 100%;
+    max-width: 100%;
+    margin-top: 16px;
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .grid2 {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .modal-actions {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .modal-actions .btn {
+    width: 100% !important;
+    display: block;
   }
 }
 </style>
