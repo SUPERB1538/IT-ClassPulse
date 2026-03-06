@@ -36,6 +36,8 @@ class ClassSession(models.Model):
         return f"{self.course.course_name} {self.get_day_of_week_display()} {self.start_time}-{self.end_time}"
 
 
+# Assignments are unique per course title so the same course
+# cannot accidentally contain duplicate entries for one task.
 class Assignment(models.Model):
     STATUS_CHOICES = [
         ("pending", "Pending"),
@@ -54,17 +56,22 @@ class Assignment(models.Model):
 
     def __str__(self):
         return self.title
-
+    
     @property
-    def is_completed(self):
+    def is_completed(self):   
+        # Convenience flags are exposed to the frontend so UI logic
+        # does not need to re-implement status checks everywhere.
         return self.status == "completed"
 
     @property
     def is_overdue(self):
+        # An assignment is overdue only if it has passed its deadline
+        # and has not already been marked as completed.
         return self.status != "completed" and self.due_date < timezone.now()
 
     @property
     def is_pending(self):
+        # "Pending" here means still active: not completed and not past due.
         return self.status != "completed" and self.due_date >= timezone.now()
 
 
@@ -75,10 +82,13 @@ class StudyPlan(models.Model):
 
     @property
     def plan_duration_seconds(self):
+        # Normalise duration for countdown display and API responses.
         return max(0, int(self.plan_duration.total_seconds())) if self.plan_duration else 0
 
     @property
     def plan_duration_human(self):
+        # Keep a compact human-readable version for the frontend
+        # so the UI does not need to format raw duration values.
         secs = self.plan_duration_seconds
         d = secs // 86400
         h = (secs % 86400) // 3600

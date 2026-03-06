@@ -138,6 +138,8 @@ const form = ref({
 const editingId = ref(null);
 const editDays = ref(1);
 
+// Convert stored duration seconds back into the compact DD.HH input format
+// so inline editing stays consistent with the create form.
 function secondsToDayHour(seconds) {
   const secs = Number(seconds || 0);
   const d = Math.floor(secs / 86400);
@@ -151,6 +153,7 @@ function secondsToDayHour(seconds) {
 const nowMs = ref(Date.now());
 let timer = null;
 
+// Keep countdown start times in localStorage so timers do not reset after refresh.
 const START_KEY = "studyplan_start_times_v1";
 const startTimes = ref(loadStartTimes()); 
 
@@ -251,6 +254,8 @@ function courseName(courseId) {
 
 const plannedAssignmentIds = computed(() => new Set(plans.value.map((p) => p.assignment)));
 const availableAssignments = computed(() => {
+  // Only assignments that are still active and do not already have a plan
+  // should appear in the "Add study plan" dropdown.
   return assignments.value.filter((a) => {
     if (plannedAssignmentIds.value.has(a.id)) return false;
 

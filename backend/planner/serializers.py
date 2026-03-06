@@ -78,6 +78,8 @@ class StudyPlanSerializer(serializers.ModelSerializer):
         ]
 
     def _parse_ddhh_to_timedelta(self, value) -> timedelta:
+        # Accept a compact "DD.HH" format such as 12.5 meaning 12 days 5 hours.
+        # This keeps the form simple for users while still storing a proper duration.
         s = str(value).strip()
         if not s:
             raise serializers.ValidationError({"plan_days": "Enter duration like 12.5 meaning 12 days 5 hours."})
@@ -109,11 +111,15 @@ class StudyPlanSerializer(serializers.ModelSerializer):
         return timedelta(days=days, hours=hours)
 
     def validate(self, attrs):
+        # Study plans must fit within the time remaining before the assignment deadline.
+        # This validation prevents users from creating impossible plans
+        # such as a 5-day plan for work due tomorrow.
         assignment = attrs.get("assignment") or getattr(self.instance, "assignment", None)
         plan_days_input = attrs.get("plan_days", None)
 
         if assignment is None:
             return attrs
+        
         if plan_days_input is None:
             duration = getattr(self.instance, "plan_duration", None)
             if duration is None:

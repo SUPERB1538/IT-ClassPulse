@@ -275,6 +275,8 @@ const loadingPlans = ref(false);
 const previewNowMs = ref(Date.now());
 let previewTimer = null;
 
+// Persist countdown start times locally so the study-plan timer
+// continues consistently across refreshes within the same browser.
 const START_KEY = "studyplan_start_times_v1";
 
 function loadPreviewStartTimes() {
@@ -292,6 +294,8 @@ function savePreviewStartTimes() {
 }
 
 function ensurePreviewStartTime(planId) {
+  // Create a stable start time the first time a plan is seen.
+  // Without this, the countdown would restart on every reload.
   if (!planId) return Date.now();
   if (!previewStartTimes.value[planId]) {
     previewStartTimes.value[planId] = Date.now();
@@ -313,6 +317,8 @@ async function fetchStudyPlans() {
   }
 }
 
+// Only show active study plans in the homepage preview:
+// completed or overdue work is excluded from the countdown panel.
 const previewPlans = computed(() =>
   studyPlans.value.filter((p) => {
     const status = (p.assignment_status || "").toLowerCase();
@@ -346,6 +352,8 @@ function previewDueClass(p) {
 }
 
 function previewCountdownSeconds(p) {
+  // Countdown is based on the locally stored start time plus
+  // the planned study duration returned by the backend.
   const start = ensurePreviewStartTime(p.id);
   const total = Number(p.plan_duration_seconds || 86400);
   const left = Math.floor((start + total * 1000 - previewNowMs.value) / 1000);
