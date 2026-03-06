@@ -327,23 +327,4 @@ async function doRegister(){
   font-size:14px;
   color:#16a34a;
 }
-
-/* Mobile */
-
-@media(max-width:900px){
-
-  .register-page{
-    grid-template-columns:1fr;
-  }
-
-  .brand-panel{
-    display:none;
-  }
-
-  .form-panel{
-    padding:12vw;
-  }
-
-}
-
 </style>

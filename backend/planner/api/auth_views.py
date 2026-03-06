@@ -52,7 +52,7 @@ def session_login(request):
     return Response({"ok": True, "username": user.username})
 
 
-@api_view(["GET"])
+@api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def session_logout(request):
     logout(request)

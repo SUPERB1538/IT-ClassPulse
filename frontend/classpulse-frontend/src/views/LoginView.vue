@@ -275,21 +275,4 @@ async function doLogin() {
   font-size: 14px;
   color: #d93025;
 }
-
-/* ===== Mobile ===== */
-
-@media (max-width: 900px) {
-  .login-page {
-    grid-template-columns: 1fr;
-  }
-
-  .brand-panel {
-    display: none;
-  }
-
-  .form-panel {
-    padding: 12vw;
-  }
-}
-
 </style>

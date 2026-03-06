@@ -116,6 +116,7 @@
 <script setup>
 import { onMounted, onUnmounted, ref, computed } from "vue";
 import { useRouter } from "vue-router";
+import { ensureCsrf } from "../auth";
 import api from "../api";
 
 const router = useRouter();
@@ -377,7 +378,8 @@ async function createPlan() {
       throw new Error("This assignment already has a study plan. Use Edit below.");
     }
 
-    // create
+    await ensureCsrf();
+
     const res = await api.post("/studyplans/", {
       assignment: assignmentId,
       plan_days: String(form.value.plan_days).trim(),
@@ -395,10 +397,10 @@ async function createPlan() {
     window.dispatchEvent(new Event("studyplans:changed"));
   } catch (e) {
     error.value =
-    e?.response?.data?.plan_days?.[0] ||
-    e?.response?.data?.detail ||
-    e.message ||
-    "Failed to create study plan";
+      e?.response?.data?.plan_days?.[0] ||
+      e?.response?.data?.detail ||
+      e.message ||
+      "Failed to create study plan";
   } finally {
     saving.value = false;
   }
@@ -423,6 +425,8 @@ async function saveEdit(p) {
     const v = String(editDays.value || "").trim();
     if (!v) throw new Error("Enter duration like 12.5 (12d 5h)");
 
+    await ensureCsrf();
+
     await api.patch(`/studyplans/${p.id}/`, {
       plan_days: String(editDays.value).trim(),
     });
@@ -441,6 +445,9 @@ async function saveEdit(p) {
 
 async function removePlan(id) {
   if (!confirm("Delete this plan?")) return;
+
+  await ensureCsrf();
+
   await api.delete(`/studyplans/${id}/`);
 
   deleteStartTime(id);
@@ -684,5 +691,13 @@ onUnmounted(() => {
   color:#dc2626;
   margin-top:10px;
   font-size:13px;
+}
+
+@media (max-width: 768px) {
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
 }
 </style>
