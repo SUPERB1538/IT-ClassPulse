@@ -1199,5 +1199,14 @@ onBeforeUnmount(() => {
   .session-subtitle {
     font-size: 11px;
   }
+
+  .modal-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .modal-actions .btn {
+    width: 100%;
+  }
 }
 </style>
