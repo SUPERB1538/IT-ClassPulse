@@ -32,21 +32,50 @@ The system provides a dashboard overview, timetable management, and tools to tra
 ### Database
 - SQLite (development)
 
+### Deployment
+- Render (backend)
+- Vercel (frontend)
+
 ---
 
 # Running the Project
 
 ## Start Backend
-Navigate to the backend folder and run the Django development server:
+1. Navigate to backend directory
 
 cd backend
-enter the virtual environment
+
+2. Create virtual environment
+
+python -m venv venv
+
+3. Activate virtual environment
+
+source venv/bin/activate
+
+4. Install dependencies
+
+pip install -r requirements.txt
+
+5. Run migrations
+
+python manage.py migrate
+
+6. Start server
+
 python manage.py runserver
 
 ## Start Frontend
-Open another terminal and run:
+1. Navigate to frontend directory
 
 cd frontend/classpulse-frontend
+
+2. Install dependencies
+
+npm install
+
+3. Start development server
+
 npm run dev
 
 ## Running Tests
