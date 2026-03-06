@@ -430,5 +430,52 @@ onMounted(fetchCourses)
     align-items: flex-start;
     gap: 12px;
   }
+
+  .head-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .search {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .assignment-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .assignment-main {
+    min-width: 0;
+  }
+
+  .title-row {
+    flex-wrap: wrap;
+  }
+
+  .actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .actions .btn {
+    width: 100%;
+  }
+
+  .edit-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .add-btn {
+    margin-left: 0;
+  }
 }
 </style>
