@@ -8,11 +8,13 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from ..models import Course, ClassSession, Assignment, StudyPlan
 from ..serializers import CourseSerializer, ClassSessionSerializer, AssignmentSerializer, StudyPlanSerializer
+from rest_framework.permissions import IsAuthenticated
 
 
 # CRUD ViewSets
 class CourseViewSet(viewsets.ModelViewSet):
     serializer_class = CourseSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         return Course.objects.filter(user=self.request.user).order_by("-id")
@@ -25,6 +27,7 @@ class CourseViewSet(viewsets.ModelViewSet):
 # to avoid invalid time ranges or overlapping classes.
 class ClassSessionViewSet(viewsets.ModelViewSet):
     serializer_class = ClassSessionSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         return (
@@ -92,6 +95,7 @@ class ClassSessionViewSet(viewsets.ModelViewSet):
 # Supports CRUD plus lightweight search/filtering for dashboard use.
 class AssignmentViewSet(viewsets.ModelViewSet):
     serializer_class = AssignmentSerializer
+    permission_classes = [IsAuthenticated]
 
     # Allow searching by assignment title or course name from the frontend list view.
     def get_queryset(self):
@@ -174,6 +178,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
 # and only one plan is allowed per assignment.
 class StudyPlanViewSet(viewsets.ModelViewSet):
     serializer_class = StudyPlanSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         qs = (
