@@ -144,6 +144,7 @@
 import { ref, onMounted } from "vue"
 import { useRouter } from "vue-router"
 import api from "../api"
+import { ensureCsrf } from "../auth";
 
 const router = useRouter()
 
@@ -184,6 +185,8 @@ async function createCourse(){
     if(!form.value.course_name.trim())
       throw new Error("Course name required")
 
+    await ensureCsrf()
+
     await api.post("/courses/",{
       course_name: form.value.course_name,
       semester: form.value.semester || ""
@@ -220,6 +223,8 @@ async function saveEdit(){
 
   try{
 
+    await ensureCsrf()
+
     await api.put(`/courses/${editing.value.id}/`,{
       course_name: editing.value.course_name,
       semester: editing.value.semester || ""
@@ -243,6 +248,8 @@ async function saveEdit(){
 async function removeCourse(id){
 
   if(!confirm("Delete this course?")) return
+
+  await ensureCsrf()
 
   await api.delete(`/courses/${id}/`)
 
@@ -417,4 +424,11 @@ onMounted(fetchCourses)
   font-size:13px;
 }
 
+@media (max-width: 768px) {
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}
 </style>

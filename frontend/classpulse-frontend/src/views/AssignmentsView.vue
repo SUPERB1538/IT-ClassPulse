@@ -214,6 +214,7 @@
 <script setup>
 import { ref, onMounted } from "vue"
 import { useRouter } from "vue-router"
+import { ensureCsrf } from "../auth"
 import api from "../api"
 
 const router = useRouter()
@@ -319,6 +320,8 @@ async function createAssignment(){
     if(!createForm.value.title.trim())
       return error.value="Title required"
 
+    await ensureCsrf()
+
     await api.post("/assignments/",{
       course:createForm.value.course,
       title:createForm.value.title,
@@ -339,6 +342,8 @@ async function createAssignment(){
 
 async function markCompleted(id){
 
+  await ensureCsrf()
+
   await api.post(`/assignments/${id}/status/`,{
     status:"completed"
   })
@@ -349,6 +354,8 @@ async function markCompleted(id){
 async function removeAssignment(id){
 
   if(!confirm("Delete assignment?")) return
+
+  await ensureCsrf()
 
   await api.delete(`/assignments/${id}/`)
   window.dispatchEvent(new Event("studyplans:changed"))
@@ -399,6 +406,8 @@ async function saveEdit(){
 
   editSaving.value = true
   try{
+    await ensureCsrf()
+
     await api.patch(`/assignments/${editingId.value}/`,{
       course: editForm.value.course,
       title: editForm.value.title.trim(),
@@ -607,5 +616,13 @@ margin-top:10px;
   cursor:not-allowed;
   transform:none;
   box-shadow:none;
+}
+
+@media (max-width: 768px) {
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
 }
 </style>

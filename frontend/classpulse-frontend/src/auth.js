@@ -1,7 +1,12 @@
 import api from "./api";
 
 export async function ensureCsrf() {
-  await api.get("/auth/csrf/");
+  const res = await api.get("/auth/csrf/");
+  const token = res.data?.csrfToken;
+  if (token) {
+    api.defaults.headers.common["X-CSRFToken"] = token;
+  }
+  return token;
 }
 
 export async function login(username, password) {
@@ -11,7 +16,8 @@ export async function login(username, password) {
 }
 
 export async function logout() {
-  const res = await api.get("/auth/logout/");
+  await ensureCsrf();
+  const res = await api.post("/auth/logout/");
   return res.data;
 }
 

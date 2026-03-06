@@ -1105,4 +1105,99 @@ onBeforeUnmount(() => {
   color: #dc2626;
   font-weight: 800;
 }
+
+
+/* ===== Mobile dashboard final fix ===== */
+@media (max-width: 768px) {
+  .dashboard-page {
+    overflow-x: hidden;
+  }
+
+  .topbar {
+    height: 56px;
+    padding: 0 16px;
+    position: relative;
+    justify-content: flex-end;
+  }
+
+  .brand {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 18px;
+    white-space: nowrap;
+  }
+
+  .right {
+    position: relative;
+    z-index: 2;
+  }
+
+  .main {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 16px;
+  }
+
+  .left,
+  .board {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .board {
+    padding: 16px;
+    overflow: hidden;
+  }
+
+  .board-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table-wrap > div {
+    width: max-content;
+    min-width: 100%;
+  }
+
+  .modern-table {
+    width: max-content;
+    min-width: 560px;
+    table-layout: auto;
+  }
+
+  .modern-table th,
+  .modern-table td {
+    font-size: 12px;
+  }
+
+  .modern-table th,
+  .time {
+    padding: 8px 6px !important;
+  }
+
+  .empty {
+    height: 28px;
+  }
+
+  .session-text {
+    padding: 6px;
+  }
+
+  .session-title {
+    font-size: 12px;
+  }
+
+  .session-subtitle {
+    font-size: 11px;
+  }
+}
 </style>
