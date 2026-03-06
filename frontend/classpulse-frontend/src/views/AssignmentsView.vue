@@ -342,7 +342,7 @@ async function markCompleted(id){
   await api.post(`/assignments/${id}/status/`,{
     status:"completed"
   })
-
+  window.dispatchEvent(new Event("studyplans:changed"))
   fetchAssignments()
 }
 
@@ -351,6 +351,7 @@ async function removeAssignment(id){
   if(!confirm("Delete assignment?")) return
 
   await api.delete(`/assignments/${id}/`)
+  window.dispatchEvent(new Event("studyplans:changed"))
   fetchAssignments()
 }
 

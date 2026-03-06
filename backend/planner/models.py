@@ -2,6 +2,8 @@ from django.db import models
 from django.contrib.auth.models import User
 from datetime import date
 from django.utils import timezone
+from django.core.validators import MinValueValidator
+from decimal import Decimal
 
 
 class Course(models.Model):
@@ -68,8 +70,19 @@ class Assignment(models.Model):
 
 class StudyPlan(models.Model):
     assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE, related_name="study_plans")
-    plan_days = models.PositiveIntegerField(default=1)
+    plan_duration = models.DurationField()
     created_at = models.DateTimeField(default=timezone.now)
 
+    @property
+    def plan_duration_seconds(self):
+        return max(0, int(self.plan_duration.total_seconds())) if self.plan_duration else 0
+
+    @property
+    def plan_duration_human(self):
+        secs = self.plan_duration_seconds
+        d = secs // 86400
+        h = (secs % 86400) // 3600
+        return f"{d}d {h}h"
+
     def __str__(self):
-        return f"{self.assignment.title} - {self.plan_days} days"
+        return f"{self.assignment.title} - {self.plan_duration_human}"
