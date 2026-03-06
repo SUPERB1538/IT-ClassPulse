@@ -67,7 +67,7 @@
           </div>
         </div>
 
-        <div class="card"
+        <div class="card studyplan-card"
               role="button"
               tabindex="0"
               @click="go('/studyplans')"
@@ -79,6 +79,46 @@
               <div class="card-sub">Plan your study days before deadlines.</div>
             </div>
             <div class="card-action">View all</div>
+          </div>
+
+          <!-- read-only preview -->
+          <div class="studyplan-preview" @click.stop>
+            <div v-if="loadingPlans" class="muted preview-empty">Loading...</div>
+
+            <div v-else-if="previewPlans.length === 0" class="muted preview-empty">
+              No study plans.
+            </div>
+
+            <ul v-else class="preview-list">
+              <li v-for="p in previewPlans" :key="p.id" class="preview-item">
+                <div class="preview-leftcol">
+                  <div class="preview-info">
+                    <div class="preview-line1">{{ p.assignment_title }}</div>
+
+                    <div class="preview-line2 muted">
+                      Course: {{ p.course_name }}
+                    </div>
+
+                    <div class="preview-line3">
+                      <span class="muted">Due:</span>
+                      <span :class="['due', previewDueClass(p)]">
+                        {{ previewDueText(p) }}
+                      </span>
+                    </div>
+
+                    <div class="preview-line4">
+                      <span class="muted">Plan:</span>
+                      <span>{{ p.plan_duration_human }}</span>
+
+                      <span class="muted">• Countdown:</span>
+                      <span :class="['countdown', previewCountdownClass(p)]">
+                        {{ previewCountdownText(p) }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </li>
+            </ul>
           </div>
         </div>
       </section>
@@ -217,7 +257,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
 import api from "../api";
 import { logout as doLogout, getMe, ensureCsrf } from "../auth";
@@ -227,6 +267,123 @@ const router = useRouter();
 const me = ref(null);
 const dashboard = ref(null);
 const loading = ref(true);
+
+/* ===== Study plan preview ===== */
+const studyPlans = ref([]);
+const loadingPlans = ref(false);
+
+const previewNowMs = ref(Date.now());
+let previewTimer = null;
+
+const START_KEY = "studyplan_start_times_v1";
+
+function loadPreviewStartTimes() {
+  try {
+    return JSON.parse(localStorage.getItem(START_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+const previewStartTimes = ref(loadPreviewStartTimes());
+
+function savePreviewStartTimes() {
+  localStorage.setItem(START_KEY, JSON.stringify(previewStartTimes.value));
+}
+
+function ensurePreviewStartTime(planId) {
+  if (!planId) return Date.now();
+  if (!previewStartTimes.value[planId]) {
+    previewStartTimes.value[planId] = Date.now();
+    savePreviewStartTimes();
+  }
+  return previewStartTimes.value[planId];
+}
+
+async function fetchStudyPlans() {
+  loadingPlans.value = true;
+  try {
+    const res = await api.get("/studyplans/");
+    studyPlans.value = res.data || [];
+    studyPlans.value.forEach((p) => ensurePreviewStartTime(p.id));
+  } catch (e) {
+    studyPlans.value = [];
+  } finally {
+    loadingPlans.value = false;
+  }
+}
+
+const previewPlans = computed(() =>
+  studyPlans.value.filter((p) => {
+    const status = (p.assignment_status || "").toLowerCase();
+    return p.time_left_seconds > 0 && status !== "completed";
+  })
+);
+
+function formatSeconds(secs) {
+  if (secs <= 0) return "Overdue";
+  const days = Math.floor(secs / 86400);
+  const hours = Math.floor((secs % 86400) / 3600);
+  const mins = Math.floor((secs % 3600) / 60);
+
+  if (days > 0) return `${days}d ${hours}h`;
+  if (hours > 0) return `${hours}h ${mins}m`;
+  return `${mins}m`;
+}
+
+function previewDueText(p) {
+  if (p.time_left_human) return p.time_left_human;
+  if (typeof p.time_left_seconds === "number") return formatSeconds(p.time_left_seconds);
+  return "N/A";
+}
+
+function previewDueClass(p) {
+  const secs = Number(p.time_left_seconds);
+  if (!Number.isFinite(secs)) return "ok";
+  if (secs <= 0) return "bad";
+  if (secs <= 86400) return "warn";
+  return "ok";
+}
+
+function previewCountdownSeconds(p) {
+  const start = ensurePreviewStartTime(p.id);
+  const total = Number(p.plan_duration_seconds || 86400);
+  const left = Math.floor((start + total * 1000 - previewNowMs.value) / 1000);
+  return left;
+}
+
+function formatHMS(secs) {
+  if (secs <= 0) return "Time up";
+
+  const days = Math.floor(secs / 86400);
+  const rem = secs % 86400;
+
+  const h = Math.floor(rem / 3600);
+  const m = Math.floor((rem % 3600) / 60);
+  const s = Math.floor(rem % 60);
+
+  const hh = String(h).padStart(2, "0");
+  const mm = String(m).padStart(2, "0");
+  const ss = String(s).padStart(2, "0");
+
+  if (days <= 0) return `${hh}:${mm}:${ss}`;
+  return `${days}d ${hh}:${mm}:${ss}`;
+}
+
+function previewCountdownText(p) {
+  return formatHMS(previewCountdownSeconds(p));
+}
+
+function previewCountdownClass(p) {
+  const left = previewCountdownSeconds(p);
+  if (left <= 0) return "bad";
+  if (left <= 3600) return "warn";
+  return "ok";
+}
+
+function handleStudyPlansChanged() {
+  fetchStudyPlans();
+}
 
 const menuOpen = ref(false);
 
@@ -418,7 +575,21 @@ async function addClassSession() {
 
 onMounted(() => {
   loadAll();
+  fetchStudyPlans();
+
+  previewTimer = setInterval(() => {
+    previewNowMs.value = Date.now();
+  }, 1000);
+
   document.addEventListener("click", handleClickOutside);
+  window.addEventListener("studyplans:changed", handleStudyPlansChanged);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener("click", handleClickOutside);
+  window.removeEventListener("studyplans:changed", handleStudyPlansChanged);
+
+  if (previewTimer) clearInterval(previewTimer);
 });
 </script>
 
@@ -834,5 +1005,96 @@ onMounted(() => {
 
 .btn.danger:hover {
   background: rgba(220,38,38,0.08);
+}
+
+/* ===== Study plan preview on dashboard ===== */
+.studyplan-card {
+  overflow: hidden;
+}
+
+.studyplan-preview {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #eef0f3;
+}
+
+.preview-empty {
+  font-size: 13px;
+}
+
+.preview-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  margin-top: 10px;
+  max-height: 520px;
+  overflow-y: auto;
+}
+
+.preview-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid #eee;
+  margin-bottom: 12px;
+  background: #f8fafc;
+}
+
+.preview-leftcol {
+  flex: 1;
+  min-width: 0;
+}
+
+.preview-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.preview-line1 {
+  font-weight: 700;
+  font-size: 15px;
+  color: #111827;
+}
+
+.preview-line2 {
+  font-size: 13px;
+}
+
+.preview-line3,
+.preview-line4 {
+  font-size: 13px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.due.ok,
+.countdown.ok {
+  color: #111827;
+}
+
+.due.bad {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.due.warn {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.countdown.warn {
+  color: #b45309;
+  font-weight: 700;
+}
+
+.countdown.bad {
+  color: #dc2626;
+  font-weight: 800;
 }
 </style>

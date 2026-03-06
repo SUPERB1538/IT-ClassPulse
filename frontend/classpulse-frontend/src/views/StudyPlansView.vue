@@ -19,10 +19,10 @@
 
         <input
           class="input"
-          v-model.number="form.plan_days"
-          type="number"
-          min="1"
-          placeholder="Days"
+          v-model="form.plan_days"
+          type="text"
+          inputmode="decimal"
+          placeholder="DD.HH (e.g. 12.5 = 12d 5h)"
         />
 
         <button class="btn add-btn" :disabled="saving" @click="createPlan">
@@ -56,12 +56,11 @@
       </div>
 
       <div v-if="loading">Loading...</div>
-      <div v-else-if="plans.length === 0" class="muted">No study plans.</div>
+      <div v-else-if="visiblePlans.length === 0" class="muted">No study plans.</div>
 
       <ul class="list" v-else>
-        <li v-for="p in plans" :key="p.id" class="item">
+        <li v-for="p in visiblePlans" :key="p.id" class="item">
           <div class="leftcol">
-            <!-- 4-line info block (Assignments style) -->
             <div class="info">
               <div class="line1">{{ p.assignment_title }}</div>
 
@@ -79,7 +78,7 @@
                 <span :class="['countdown', countdownClass(p)]">
                   {{ countdownText(p) }}
                 </span>
-                <span class="muted">({{ p.plan_days }} day{{ p.plan_days === 1 ? "" : "s" }})</span>
+                <span class="muted">({{ p.plan_duration_human }})</span>
               </div>
             </div>
 
@@ -87,9 +86,9 @@
             <div v-if="editingId === p.id" class="editrow">
               <input
                 class="input small"
-                type="number"
-                min="1"
-                v-model.number="editDays"
+                type="text"
+                inputmode="decimal"
+                v-model="editDays"
               />
               <button class="btn" :disabled="saving" @click="saveEdit(p)">
                 {{ saving ? "Saving..." : "Save" }}
@@ -136,20 +135,24 @@ const form = ref({
   plan_days: null,
 });
 
-// Edit state
 const editingId = ref(null);
 const editDays = ref(1);
 
+function secondsToDayHour(seconds) {
+  const secs = Number(seconds || 0);
+  const d = Math.floor(secs / 86400);
+  const h = Math.floor((secs % 86400) / 3600);
+  return `${d}.${h}`; 
+}
+
 /** -----------------------------
- *  Countdown system (local)
- *  - Start time stored in localStorage per plan.id
- *  - UI updates every second
+ *  Countdown system 
  * ------------------------------ */
 const nowMs = ref(Date.now());
 let timer = null;
 
 const START_KEY = "studyplan_start_times_v1";
-const startTimes = ref(loadStartTimes()); // { [planId]: ms }
+const startTimes = ref(loadStartTimes()); 
 
 function loadStartTimes() {
   try {
@@ -182,17 +185,28 @@ function deleteStartTime(planId) {
 
 function planCountdownSeconds(p) {
   const start = ensureStartTime(p.id);
-  const total = Number(p.plan_days || 1) * 86400; // seconds
+  const total = Number(p.plan_duration_seconds || 86400);
   const left = Math.floor((start + total * 1000 - nowMs.value) / 1000);
   return left;
 }
 
 function formatHMS(secs) {
   if (secs <= 0) return "Time up";
-  const h = Math.floor(secs / 3600);
-  const m = Math.floor((secs % 3600) / 60);
-  const s = Math.floor(secs % 60);
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+
+  const days = Math.floor(secs / 86400);
+  const rem = secs % 86400;
+
+  const h = Math.floor(rem / 3600);
+  const m = Math.floor((rem % 3600) / 60);
+  const s = Math.floor(rem % 60);
+
+  const hh = String(h).padStart(2, "0");
+  const mm = String(m).padStart(2, "0");
+  const ss = String(s).padStart(2, "0");
+
+  if (days <= 0) return `${hh}:${mm}:${ss}`;
+
+  return `${days}d ${hh}:${mm}:${ss}`;
 }
 
 /** -----------------------------
@@ -216,7 +230,6 @@ async function fetchPlans() {
     const res = await api.get("/studyplans/", { params });
     plans.value = res.data || [];
 
-    // Ensure each plan has a start time for countdown
     plans.value.forEach((p) => ensureStartTime(p.id));
   } finally {
     loading.value = false;
@@ -237,18 +250,76 @@ function courseName(courseId) {
 }
 
 const plannedAssignmentIds = computed(() => new Set(plans.value.map((p) => p.assignment)));
-const availableAssignments = computed(() =>
-  assignments.value.filter((a) => !plannedAssignmentIds.value.has(a.id))
+const availableAssignments = computed(() => {
+  return assignments.value.filter((a) => {
+    if (plannedAssignmentIds.value.has(a.id)) return false;
+
+    const status = (a.status || a.state || "").toString().toLowerCase();
+    const isCompleted =
+      a.completed === true ||
+      a.is_completed === true ||
+      status === "completed" ||
+      status === "done";
+
+    if (isCompleted) return false;
+
+    if (typeof a.time_left_seconds === "number" && a.time_left_seconds <= 0) return false;
+    if (typeof a.time_left_human === "string" && a.time_left_human.toLowerCase().includes("overdue"))
+      return false;
+
+    const dueStr = a.due_date || a.due || a.deadline;
+    if (dueStr) {
+      const dueMs = Date.parse(dueStr);
+      if (!Number.isNaN(dueMs) && dueMs <= Date.now()) return false;
+    }
+
+    return true;
+  });
+});
+
+const eligibleAssignmentIds = computed(() => {
+  const ok = new Set();
+
+  for (const a of assignments.value) {
+    const status = (a.status || a.state || "").toString().toLowerCase();
+
+    const isCompleted =
+      a.completed === true ||
+      a.is_completed === true ||
+      status === "completed" ||
+      status === "done";
+
+    if (isCompleted) continue;
+
+    if (typeof a.time_left_seconds === "number" && a.time_left_seconds <= 0) continue;
+    if (
+      typeof a.time_left_human === "string" &&
+      a.time_left_human.toLowerCase().includes("overdue")
+    ) continue;
+
+    const dueStr = a.due_date || a.due || a.deadline;
+    if (dueStr) {
+      const dueMs = Date.parse(dueStr);
+      if (!Number.isNaN(dueMs) && dueMs <= Date.now()) continue;
+    }
+
+    ok.add(a.id);
+  }
+
+  return ok;
+});
+
+const visiblePlans = computed(() =>
+  plans.value.filter((p) => eligibleAssignmentIds.value.has(p.assignment))
 );
 
 const addHint = computed(() => {
   if (!assignments.value.length) return "";
   if (availableAssignments.value.length === 0)
-    return "All assignments already have a study plan. Use Edit below.";
+    return "No eligible assignments. Only pending (not overdue, not completed) assignments can be added.";
   return "";
 });
 
-// backend due-time formatter
 function formatSeconds(secs) {
   if (secs <= 0) return "Overdue";
   const days = Math.floor(secs / 86400);
@@ -260,7 +331,6 @@ function formatSeconds(secs) {
   return `${mins}m`;
 }
 
-// Line 3: Due text + class
 function dueText(p) {
   if (p.time_left_human) return p.time_left_human;
   if (typeof p.time_left_seconds === "number") return formatSeconds(p.time_left_seconds);
@@ -273,7 +343,6 @@ function dueClass(p) {
   return "ok";
 }
 
-// Line 4: Countdown text + class
 function countdownText(p) {
   return formatHMS(planCountdownSeconds(p));
 }
@@ -281,7 +350,7 @@ function countdownText(p) {
 function countdownClass(p) {
   const left = planCountdownSeconds(p);
   if (left <= 0) return "bad";
-  if (left <= 3600) return "warn"; // last hour
+  if (left <= 3600) return "warn"; 
   return "ok";
 }
 
@@ -296,7 +365,8 @@ async function createPlan() {
     const assignmentId = Number(form.value.assignment);
 
     if (!assignmentId) throw new Error("Select an assignment");
-    if (!form.value.plan_days || form.value.plan_days < 1) throw new Error("Days must be >= 1");
+    const v = String(form.value.plan_days || "").trim();
+    if (!v) throw new Error("Enter duration like 12.5 (12d 5h)");
 
     if (plans.value.some((p) => p.assignment === assignmentId)) {
       throw new Error("This assignment already has a study plan. Use Edit below.");
@@ -305,10 +375,9 @@ async function createPlan() {
     // create
     const res = await api.post("/studyplans/", {
       assignment: assignmentId,
-      plan_days: Number(form.value.plan_days),
+      plan_days: String(form.value.plan_days).trim(),
     });
 
-    // if backend returns created plan with id, store start time immediately
     if (res?.data?.id) {
       startTimes.value[res.data.id] = Date.now();
       saveStartTimes();
@@ -318,10 +387,13 @@ async function createPlan() {
     form.value.plan_days = 1;
 
     await fetchPlans();
+    window.dispatchEvent(new Event("studyplans:changed"));
   } catch (e) {
-    error.value = e?.response?.data
-      ? JSON.stringify(e.response.data)
-      : (e.message || String(e));
+    error.value =
+    e?.response?.data?.plan_days?.[0] ||
+    e?.response?.data?.detail ||
+    e.message ||
+    "Failed to create study plan";
   } finally {
     saving.value = false;
   }
@@ -330,7 +402,7 @@ async function createPlan() {
 function startEdit(p) {
   error.value = "";
   editingId.value = p.id;
-  editDays.value = Number(p.plan_days || 1);
+  editDays.value = secondsToDayHour(p.plan_duration_seconds);
 }
 
 function cancelEdit() {
@@ -343,14 +415,16 @@ async function saveEdit(p) {
   saving.value = true;
 
   try {
-    if (!editDays.value || editDays.value < 1) throw new Error("Days must be >= 1");
+    const v = String(editDays.value || "").trim();
+    if (!v) throw new Error("Enter duration like 12.5 (12d 5h)");
 
     await api.patch(`/studyplans/${p.id}/`, {
-      plan_days: Number(editDays.value),
+      plan_days: String(editDays.value).trim(),
     });
 
     editingId.value = null;
     await fetchPlans();
+    window.dispatchEvent(new Event("studyplans:changed"));
   } catch (e) {
     error.value = e?.response?.data
       ? JSON.stringify(e.response.data)
@@ -364,27 +438,34 @@ async function removePlan(id) {
   if (!confirm("Delete this plan?")) return;
   await api.delete(`/studyplans/${id}/`);
 
-  // clean local countdown start time
   deleteStartTime(id);
 
   await fetchPlans();
+  window.dispatchEvent(new Event("studyplans:changed"));
 }
 
 /** -----------------------------
  *  Lifecycle
  * ------------------------------ */
-onMounted(async () => {
-  await fetchCourses();
+async function refreshAll() {
   await fetchAssignments();
   await fetchPlans();
+}
+
+onMounted(async () => {
+  await fetchCourses();
+  await refreshAll();
 
   timer = setInterval(() => {
     nowMs.value = Date.now();
   }, 1000);
+
+  window.addEventListener("focus", refreshAll);
 });
 
 onUnmounted(() => {
   if (timer) clearInterval(timer);
+  window.removeEventListener("focus", refreshAll);
 });
 </script>
 
