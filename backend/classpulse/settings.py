@@ -55,7 +55,7 @@ REST_FRAMEWORK = {
     ],
 }
 
-ALLOWED_HOSTS = ["127.0.0.1", "localhost", '*']
+ALLOWED_HOSTS = ["127.0.0.1", "localhost", "classpulse-silk.vercel.app", "classpulse-twdk.onrender.com"]
 
 
 # Application definition
