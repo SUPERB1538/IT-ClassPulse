@@ -3,7 +3,7 @@ import axios from "axios";
 // Central axios instance keeps API URLs relative so the frontend
 // can work across environments without hard-coded absolute paths.
 const api = axios.create({
-  baseURL: "/api",
+  baseURL: "https://classpulse-twdk.onrender.com/api",
   withCredentials: true,
 });
 
