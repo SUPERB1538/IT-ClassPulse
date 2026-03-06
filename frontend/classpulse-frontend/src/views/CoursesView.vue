@@ -431,30 +431,23 @@ onMounted(fetchCourses)
     gap: 12px;
   }
 
-  .head-row {
+  .row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .add-btn {
+    margin-left: 0;
+  }
+
+  .item {
     flex-direction: column;
     align-items: stretch;
     gap: 12px;
   }
 
-  .search {
-    width: 100%;
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .assignment-card {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-  }
-
-  .assignment-main {
+  .left {
     min-width: 0;
-  }
-
-  .title-row {
-    flex-wrap: wrap;
   }
 
   .actions {
@@ -468,14 +461,26 @@ onMounted(fetchCourses)
     width: 100%;
   }
 
-  .edit-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+  .modalMask {
+    padding: 12px;
+    align-items: flex-start;
+    overflow-y: auto;
   }
 
-  .add-btn {
-    margin-left: 0;
+  .modal {
+    width: 100%;
+    max-width: 100%;
+    margin-top: 16px;
+    padding: 16px;
+  }
+
+  .modal-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .modal-actions .btn {
+    width: 100%;
   }
 }
 </style>

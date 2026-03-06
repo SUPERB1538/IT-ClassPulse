@@ -712,18 +712,24 @@ onUnmounted(() => {
     align-items: stretch;
   }
 
-  .assignment-card {
+  .row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .add-btn {
+    margin-left: 0;
+  }
+
+  .item {
     flex-direction: column;
     align-items: stretch;
     gap: 12px;
   }
 
-  .assignment-main {
+  .leftcol {
     min-width: 0;
-  }
-
-  .title-row {
-    flex-wrap: wrap;
+    width: 100%;
   }
 
   .actions {
@@ -737,14 +743,15 @@ onUnmounted(() => {
     width: 100%;
   }
 
-  .edit-grid {
-    display: flex;
+  .editrow {
     flex-direction: column;
-    gap: 10px;
+    align-items: stretch;
+    gap: 8px;
   }
 
-  .add-btn {
-    margin-left: 0;
+  .input.small {
+    min-width: 0;
+    width: 100%;
   }
 }
 </style>
