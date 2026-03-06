@@ -23,7 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-x5(si99j+&3dwe#&-uds9glbt5s+%m@qo*(1+@na_78*uw-ou0'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
@@ -46,7 +46,10 @@ REST_FRAMEWORK = {
     ],
 }
 
-ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
+ALLOWED_HOSTS = ["127.0.0.1", "localhost", '*']
+
+STATIC_URL = "/static/"
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
 
 # Application definition
