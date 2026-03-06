@@ -2,17 +2,19 @@ from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
-from planner.api_views import (
+from planner.api.viewsets import (
     CourseViewSet,
     ClassSessionViewSet,
     AssignmentViewSet,
     StudyPlanViewSet,
-    dashboard_api,
+)
+from planner.api.dashboard_views import dashboard_api
+from planner.api.auth_views import (
     csrf,
+    register,
     session_login,
     session_logout,
     me,
-    register,
 )
 
 router = DefaultRouter()

@@ -11,9 +11,9 @@ const routes = [
   { path: "/login", name: "login", component: LoginView },
   { path: "/", name: "home", component: HomeView, meta: { requiresAuth: true } },
   { path: "/register", name: "register", component: RegisterView },
-  { path: "/courses", name: "courses", component: CoursesView },
-  { path: "/assignments", name: "assignments", component: AssignmentsView },
-  { path: "/studyplans", name: "studyplans", component: StudyPlansView },
+  { path: "/courses", name: "courses", component: CoursesView, meta: { requiresAuth: true } },
+  { path: "/assignments", name: "assignments", component: AssignmentsView, meta: { requiresAuth: true } },
+  { path: "/studyplans", name: "studyplans", component: StudyPlansView, meta: { requiresAuth: true } },
 ];
 
 const router = createRouter({
@@ -24,8 +24,11 @@ const router = createRouter({
 let cachedMe = null;
 
 router.beforeEach(async (to) => {
+  // Only protected routes need a session check.
   if (!to.meta.requiresAuth) return true;
 
+  // Reuse the previous successful session lookup to avoid
+  // calling /auth/me/ on every navigation within one session.
   if (cachedMe?.ok) return true;
 
   try {
@@ -34,6 +37,7 @@ router.beforeEach(async (to) => {
       cachedMe = me;
       return true;
     }
+    // Preserve the target route so the user can be redirected back after login.
     return { path: "/login", query: { next: to.fullPath } };
   } catch {
     return { path: "/login", query: { next: to.fullPath } };
