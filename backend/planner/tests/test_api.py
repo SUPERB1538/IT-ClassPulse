@@ -64,5 +64,4 @@ class SessionApiTests(TestCase):
         }
         r = self.client.post(url, payload, format="json")
         self.assertEqual(r.status_code, 400)
-        # 你的 viewset 抛的是 {"overlap": "..."}
         self.assertIn("overlap", r.data)
