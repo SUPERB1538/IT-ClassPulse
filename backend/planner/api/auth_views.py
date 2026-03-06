@@ -52,7 +52,8 @@ def session_login(request):
     return Response({"ok": True, "username": user.username})
 
 
-@api_view(["POST"])
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def session_logout(request):
     logout(request)
     return Response({"ok": True})

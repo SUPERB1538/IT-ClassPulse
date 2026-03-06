@@ -11,8 +11,7 @@ export async function login(username, password) {
 }
 
 export async function logout() {
-  await ensureCsrf();
-  const res = await api.post("/auth/logout/");
+  const res = await api.get("/auth/logout/");
   return res.data;
 }
 
